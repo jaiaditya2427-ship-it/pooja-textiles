@@ -313,15 +313,20 @@ export default function App() {
     }, 8000);
 
     try {
-      const res = await fetch(fetch("https://fashion-tryon-backend1.onrender.com/tryon", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          personImg,
-          clothImg,
-          garment: { label: garment.label, category: garment.category } // ✅ send as object
-        })
-      });
+      const res = await fetch("https://fashion-tryon-backend1.onrender.com/tryon", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    personImg,
+    clothImg,
+    garment: {
+      label: garment.label,
+      category: garment.category
+    }
+  })
+});
 
       const data = await res.json();
 
