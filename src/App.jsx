@@ -327,11 +327,9 @@ export default function App() {
     }
   })
 });
-      
-const data = await res.json();
-console.log("Backend response:", data);
-      
       const data = await res.json();
+console.log("Backend response:", data)
+  const data = await res.json();
 
       if (!data.success) {
         throw new Error(data.error || "AI generation failed");
