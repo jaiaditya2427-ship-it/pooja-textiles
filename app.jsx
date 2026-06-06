@@ -1,5 +1,8 @@
 import { useState, useRef, useCallback } from "react";
 
+// ── Backend URL ───────────────────────────────────────────────────────────────
+const BACKEND = "https://fashion-tryon-backend1.onrender.com";
+
 // ── Audio ─────────────────────────────────────────────────────────────────────
 const AudioEngine = {
   ctx: null,
@@ -25,24 +28,24 @@ const AudioEngine = {
     } catch(e) {}
   }
 };
-const haptic = (t="light") => {
+
+const haptic = (t = "light") => {
   if (!navigator.vibrate) return;
-  ({light:()=>navigator.vibrate(10), medium:()=>navigator.vibrate(25),
-    heavy:()=>navigator.vibrate([30,10,30]), success:()=>navigator.vibrate([10,50,10,50,80])}[t]||(() => {}))();
+  ({ light: () => navigator.vibrate(10), medium: () => navigator.vibrate(25), heavy: () => navigator.vibrate([30,10,30]), success: () => navigator.vibrate([10,50,10,50,80]) }[t] || (() => {}))();
 };
 
 // ── Garment Types ─────────────────────────────────────────────────────────────
 const GARMENT_TYPES = [
-  { id:"upper_body", label:"T-Shirt",  short:"Top",    icon:"👕", category:"upper_body" },
-  { id:"lower_body", label:"Pants",    short:"Bottom", icon:"👖", category:"lower_body" },
-  { id:"dresses",    label:"Dress",    short:"Dress",  icon:"👗", category:"dresses"    },
-  { id:"jacket",     label:"Jacket",   short:"Jacket", icon:"🧥", category:"upper_body" },
+  { id: "upper_body", label: "T-Shirt",  short: "Top",    icon: "👕", category: "upper_body" },
+  { id: "lower_body", label: "Pants",    short: "Bottom", icon: "👖", category: "lower_body" },
+  { id: "dresses",    label: "Dress",    short: "Dress",  icon: "👗", category: "dresses"    },
+  { id: "jacket",     label: "Jacket",   short: "Jacket", icon: "🧥", category: "upper_body" },
 ];
 
-// ── Read file as base64 DataURL (for both preview + API) ──────────────────────
+// ── Read file as base64 DataURL ───────────────────────────────────────────────
 const readFileAsDataURL = (file) => new Promise((res, rej) => {
   const r = new FileReader();
-  r.onload = () => res(r.result);   // full data:image/...;base64,... string
+  r.onload = () => res(r.result);
   r.onerror = rej;
   r.readAsDataURL(file);
 });
@@ -121,7 +124,7 @@ html,body{background:var(--bg);color:var(--cream);font-family:'Inter',sans-serif
 .uoverlay{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;opacity:0;transition:opacity .3s;border-radius:var(--r)}
 .uzone:hover .uoverlay{opacity:1}
 .uoverlay-btns{display:flex;gap:.5rem}
-.uov-btn{padding:.35rem .7rem;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;border:1px solid rgba(255,255,255,.3);color:white;background:rgba(255,255,255,.1);cursor:pointer;transition:all .2s}
+.uov-btn{padding:.35rem .7rem;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;border:1px solid rgba(255,255,255,.3);color:white;background:rgba(255,255,255,.1);cursor:pointer;transition:all .2s;border-radius:4px}
 .uov-btn:hover{background:var(--gold);color:#000;border-color:var(--gold)}
 .uov-btn.danger:hover{background:var(--red);border-color:var(--red)}
 .u-icon{font-size:2rem;opacity:.25;margin-bottom:.5rem}
@@ -129,34 +132,8 @@ html,body{background:var(--bg);color:var(--cream);font-family:'Inter',sans-serif
 .u-sub{font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-top:.15rem}
 .u-cam-hint{font-size:.55rem;color:var(--gold);opacity:.7;margin-top:.3rem}
 input[type=file]{display:none}
-
-/* UZONE status badge */
 .uzone-badge{position:absolute;top:.5rem;left:.5rem;font-size:.55rem;letter-spacing:.12em;text-transform:uppercase;padding:.2rem .5rem;border-radius:4px;font-weight:600}
 .uzone-badge.ok{background:rgba(34,197,94,.2);color:var(--green);border:1px solid rgba(34,197,94,.3)}
-
-/* API KEY */
-.apisec{padding:0 1.25rem 1.25rem}
-.finput{width:100%;padding:.85rem 1rem;background:var(--card);border:1.5px solid var(--border);color:var(--cream);font-family:'Inter',sans-serif;font-size:.82rem;outline:none;transition:border-color .3s;border-radius:8px}
-.finput:focus{border-color:var(--gold)}
-.finput::placeholder{color:var(--muted)}
-.fhint{font-size:.62rem;color:var(--muted);margin-top:.4rem;line-height:1.5}
-.fhint a{color:var(--gold);text-decoration:none}
-
-/* STATUS INDICATOR */
-.api-status{display:flex;align-items:center;gap:.5rem;margin-top:.5rem;font-size:.62rem}
-.dot{width:6px;height:6px;border-radius:50%}
-.dot.ok{background:var(--green);box-shadow:0 0 6px var(--green)}
-.dot.bad{background:var(--red);box-shadow:0 0 6px var(--red)}
-.dot.idle{background:var(--muted)}
-
-/* GENERATE BTN */
-.genwrap{padding:0 1.25rem 1.5rem}
-.genbtn{width:100%;padding:1.1rem;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:.3em;text-transform:uppercase;position:relative;overflow:hidden;transition:all .3s;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:.75rem}
-.genbtn:disabled{opacity:.3;cursor:not-allowed;background:var(--border);color:var(--muted)}
-.genbtn:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(212,168,67,.4)}
-.genbtn:not(:disabled):active{transform:translateY(0)}
-.shine{position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);animation:shine 2.5s ease-in-out infinite}
-@keyframes shine{0%{left:-100%}50%{left:150%}100%{left:150%}}
 
 /* CHECKLIST */
 .checklist{padding:0 1.25rem 1rem;display:flex;flex-direction:column;gap:.4rem}
@@ -167,6 +144,15 @@ input[type=file]{display:none}
 /* ERROR */
 .errbox{margin:0 1.25rem 1.25rem;padding:.9rem 1rem;background:rgba(239,68,68,.08);border-left:3px solid var(--red);font-size:.75rem;color:#FCA5A5;line-height:1.6;border-radius:0 8px 8px 0}
 .errbox strong{display:block;margin-bottom:.25rem;font-size:.78rem}
+
+/* GENERATE BTN */
+.genwrap{padding:0 1.25rem 1.5rem}
+.genbtn{width:100%;padding:1.1rem;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:.3em;text-transform:uppercase;position:relative;overflow:hidden;transition:all .3s;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:.75rem}
+.genbtn:disabled{opacity:.3;cursor:not-allowed;background:var(--border);color:var(--muted)}
+.genbtn:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(212,168,67,.4)}
+.genbtn:not(:disabled):active{transform:translateY(0)}
+.shine{position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);animation:shine 2.5s ease-in-out infinite}
+@keyframes shine{0%{left:-100%}50%{left:150%}100%{left:150%}}
 
 /* LOADING */
 .loadover{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;backdrop-filter:blur(16px)}
@@ -195,7 +181,6 @@ input[type=file]{display:none}
 .abtn.gold:hover{background:var(--gold2);border-color:var(--gold2)}
 .abtn.wa:hover{background:#25D366;border-color:#25D366;color:#000}
 .abtn.ig:hover{background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);border-color:#dc2743}
-.abtn.danger:hover{background:rgba(239,68,68,.15);border-color:var(--red);color:var(--red)}
 
 /* SHARE SHEET */
 .sheetbg{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(8px);animation:bgin .3s ease}
@@ -220,27 +205,26 @@ input[type=file]{display:none}
 // ── Particles ─────────────────────────────────────────────────────────────────
 const Particles = () => (
   <div className="w-particles">
-    {Array.from({length:24},(_,i)=>(
+    {Array.from({ length: 24 }, (_, i) => (
       <div key={i} className="wp" style={{
-        left: Math.random()*100+"%",
-        animationDuration: (7+Math.random()*9)+"s",
-        animationDelay: Math.random()*10+"s",
-        "--dx": (Math.random()-.5)*120+"px",
-        width: Math.random()>0.7 ? "3px" : "2px",
-        height: Math.random()>0.7 ? "3px" : "2px",
-      }}/>
+        left: Math.random() * 100 + "%",
+        animationDuration: (7 + Math.random() * 9) + "s",
+        animationDelay: Math.random() * 10 + "s",
+        "--dx": (Math.random() - .5) * 120 + "px",
+        width: Math.random() > 0.7 ? "3px" : "2px",
+        height: Math.random() > 0.7 ? "3px" : "2px",
+      }} />
     ))}
   </div>
 );
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function App() {
-  const [screen, setScreen]     = useState("welcome");
-  const [wExit,  setWExit]      = useState(false);
-  const [personImg, setPersonImg] = useState(null); // dataURL for preview
-  const [clothImg,  setClothImg]  = useState(null); // dataURL for preview
+  const [screen,    setScreen]    = useState("welcome");
+  const [wExit,     setWExit]     = useState(false);
+  const [personImg, setPersonImg] = useState(null);
+  const [clothImg,  setClothImg]  = useState(null);
   const [garment,   setGarment]   = useState(GARMENT_TYPES[0]);
-  const [apiKey,    setApiKey]    = useState("");
   const [loading,   setLoading]   = useState(false);
   const [loadMsg,   setLoadMsg]   = useState("Crafting Your Look");
   const [result,    setResult]    = useState(null);
@@ -254,7 +238,7 @@ export default function App() {
 
   const showToast = useCallback((msg) => {
     setToast(msg); setToastOn(true);
-    setTimeout(() => setToastOn(false), 2500);
+    setTimeout(() => setToastOn(false), 2800);
   }, []);
 
   const click = () => { AudioEngine.play("click"); haptic("light"); };
@@ -266,11 +250,10 @@ export default function App() {
     setTimeout(() => setScreen("main"), 900);
   };
 
-  // ── Upload — use FileReader dataURL for preview AND API ──
+  // ── Upload ──
   const handleUpload = async (e, who) => {
     const file = e.target.files[0];
     if (!file) return;
-    // Reset input so same file can be re-selected
     e.target.value = "";
     click();
     try {
@@ -278,14 +261,14 @@ export default function App() {
       if (who === "person") { setPersonImg(dataURL); showToast("✓ Customer photo ready"); }
       else                  { setClothImg(dataURL);  showToast("✓ Garment photo ready"); }
     } catch {
-      showToast("Could not read image");
+      showToast("Could not read image, try another");
     }
   };
 
   const retake = (who) => {
     AudioEngine.play("retake"); haptic("medium");
-    if (who === "person") { setPersonImg(null); personRef.current?.click(); }
-    else                  { setClothImg(null);  clothRef.current?.click(); }
+    if (who === "person") { setPersonImg(null); setTimeout(() => personRef.current?.click(), 100); }
+    else                  { setClothImg(null);  setTimeout(() => clothRef.current?.click(), 100); }
   };
 
   const remove = (who) => {
@@ -294,54 +277,79 @@ export default function App() {
     else setClothImg(null);
   };
 
-  // ── Generate ──
+  // ── Generate — calls Render backend ──────────────────────────────────────
   const generate = async () => {
-  if (!personImg || !clothImg) {
-    showToast("⚠ Add both photos");
-    haptic("heavy");
-    return;
-  }
-
-  setLoading(true);
-  setError("");
-  setResult(null);
-  setLoadMsg("Sending to AI...");
-
-  try {
-    const res = await fetch("http://localhost:5000/tryon", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        personImg,
-        clothImg,
-        garment: garment.label,
-        category: garment.category
-      })
-    });
-
-    const data = await res.json();
-
-    if (!data.success) {
-      throw new Error(data.error || "AI generation failed");
+    if (!personImg || !clothImg) {
+      showToast("⚠ Add both photos first");
+      haptic("heavy");
+      return;
     }
 
-    finalize(data.image);
+    click();
+    setLoading(true);
+    setError("");
+    setResult(null);
+    setLoadMsg("Waking up server...");
 
-  } catch (e) {
-    AudioEngine.play("error");
-    haptic("heavy");
-    setError(e.message);
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      // Wake up Render (free tier sleeps after inactivity)
+      try {
+        await fetch(`${BACKEND}/`, { method: "GET" });
+      } catch (_) {}
+
+      setLoadMsg("Sending photos to AI...");
+
+      const res = await fetch(`${BACKEND}/tryon`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          personImg,
+          clothImg,
+          garment: {
+            label:    garment.label,
+            category: garment.category,
+          },
+        }),
+      });
+
+      // Try to parse JSON even on error status
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error(`Server returned invalid response (status ${res.status}). Is your Render backend running?`);
+      }
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || `Server error ${res.status}`);
+      }
+
+      setLoadMsg("Almost done...");
+      finalize(data.image);
+
+    } catch (e) {
+      AudioEngine.play("error");
+      haptic("heavy");
+
+      // Give user friendly error messages
+      let msg = e.message;
+      if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+        msg = "Cannot reach server. Your Render backend may be sleeping — wait 30 seconds and try again.";
+      }
+      if (msg.includes("REPLICATE_API_KEY")) {
+        msg = "Replicate API key not set on Render. Go to Render dashboard → Environment → add REPLICATE_API_KEY.";
+      }
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const finalize = (imgUrl) => {
     setResult(imgUrl);
     setScreen("result");
-    AudioEngine.play("success"); haptic("success");
+    AudioEngine.play("success");
+    haptic("success");
   };
 
   // ── Download ──
@@ -352,13 +360,16 @@ export default function App() {
       const blob = await res.blob();
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement("a");
-      a.href = url; a.download = `fashion-tryon-${Date.now()}.jpg`;
-      document.body.appendChild(a); a.click();
-      document.body.removeChild(a); URL.revokeObjectURL(url);
-      showToast("✓ Image downloaded");
+      a.href = url;
+      a.download = `fashion-tryon-${Date.now()}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("✓ Image downloaded!");
     } catch {
-      showToast("Open image link to save");
       window.open(result, "_blank");
+      showToast("Opened in new tab — save from there");
     }
   };
 
@@ -369,8 +380,9 @@ export default function App() {
     setShareOpen(false);
   };
   const shareInstagram = async () => {
-    click(); await download();
-    showToast("Saved! Open Instagram → Stories");
+    click();
+    await download();
+    showToast("Saved! Open Instagram → Stories → add photo");
     setShareOpen(false);
   };
   const shareNative = async () => {
@@ -380,14 +392,14 @@ export default function App() {
       catch {}
     } else {
       await navigator.clipboard?.writeText(result);
-      showToast("✓ Link copied");
+      showToast("✓ Link copied!");
     }
     setShareOpen(false);
   };
   const copyLink = async () => {
     click();
     await navigator.clipboard?.writeText(result);
-    showToast("✓ Link copied to clipboard");
+    showToast("✓ Link copied to clipboard!");
     setShareOpen(false);
   };
 
@@ -395,18 +407,18 @@ export default function App() {
   const reset = () => {
     click(); AudioEngine.play("whoosh");
     setPersonImg(null); setClothImg(null);
-    setResult(null); setError(""); setScreen("main");
+    setResult(null); setError("");
+    setScreen("main");
   };
 
   const step = !personImg ? 1 : !clothImg ? 2 : 3;
-  const apiOk = apiKey.trim().startsWith("r8_") && apiKey.trim().length > 10;
 
   return (
     <>
       <style>{S}</style>
       <div className="app">
 
-        {/* ── WELCOME ── */}
+        {/* WELCOME */}
         {screen === "welcome" && (
           <div className={`welcome${wExit ? " out" : ""}`}>
             <div className="wbg" />
@@ -417,13 +429,14 @@ export default function App() {
               <div className="wsub">Virtual Fitting Room</div>
               <div className="wdivider" />
               <button className="wbtn" onClick={enter}>
-                <span>Enter Experience</span><span style={{fontSize:"1rem"}}>→</span>
+                <span>Enter Experience</span>
+                <span style={{ fontSize: "1rem" }}>→</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* ── MAIN + RESULT ── */}
+        {/* MAIN + RESULT */}
         {(screen === "main" || screen === "result") && (
           <>
             <header className="hdr">
@@ -435,11 +448,13 @@ export default function App() {
               <>
                 {/* Steps */}
                 <div className="steps">
-                  {[{n:1,l:"Photo"},{n:2,l:"Garment"},{n:3,l:"Generate"}].map((s,i) => (
+                  {[{ n: 1, l: "Photo" }, { n: 2, l: "Garment" }, { n: 3, l: "Generate" }].map((s, i) => (
                     <div key={s.n} className="si">
-                      {i > 0 && <div className={`sl${step > s.n ? " done":""}`} />}
+                      {i > 0 && <div className={`sl${step > s.n ? " done" : ""}`} />}
                       <div className="sw">
-                        <div className={`sd${step===s.n?" active":step>s.n?" done":""}`}>{step>s.n?"✓":s.n}</div>
+                        <div className={`sd${step === s.n ? " active" : step > s.n ? " done" : ""}`}>
+                          {step > s.n ? "✓" : s.n}
+                        </div>
                         <div className="slabel">{s.l}</div>
                       </div>
                     </div>
@@ -450,8 +465,9 @@ export default function App() {
                 <div className="gsec">
                   <div className="sec-label">Garment Type</div>
                   <div className="gchips">
-                    {GARMENT_TYPES.map((g,i) => (
-                      <div key={i} className={`gc${garment.id===g.id&&garment.label===g.label?" sel":""}`}
+                    {GARMENT_TYPES.map((g, i) => (
+                      <div key={i}
+                        className={`gc${garment.id === g.id && garment.label === g.label ? " sel" : ""}`}
                         onClick={() => { AudioEngine.play("select"); haptic("light"); setGarment(g); }}>
                         <div className="gc-icon">{g.icon}</div>
                         <div className="gc-lbl">{g.short}</div>
@@ -464,16 +480,17 @@ export default function App() {
                 <div className="uploadsec">
                   {/* Person */}
                   <div>
-                    <input ref={personRef} type="file" accept="image/*" capture="user" onChange={e => handleUpload(e,"person")} />
-                    <div className={`uzone${personImg?" has":""}`} onClick={() => !personImg && (click(), personRef.current.click())}>
+                    <input ref={personRef} type="file" accept="image/*" onChange={e => handleUpload(e, "person")} />
+                    <div className={`uzone${personImg ? " has" : ""}`}
+                      onClick={() => !personImg && (click(), personRef.current.click())}>
                       {personImg ? (
                         <>
                           <img src={personImg} alt="Customer" />
-                          {personImg && <div className="uzone-badge ok">✓ Ready</div>}
+                          <div className="uzone-badge ok">✓ Ready</div>
                           <div className="uoverlay">
                             <div className="uoverlay-btns">
-                              <button className="uov-btn" onClick={e=>{e.stopPropagation();retake("person")}}>Retake</button>
-                              <button className="uov-btn danger" onClick={e=>{e.stopPropagation();remove("person")}}>Remove</button>
+                              <button className="uov-btn" onClick={e => { e.stopPropagation(); retake("person"); }}>Retake</button>
+                              <button className="uov-btn danger" onClick={e => { e.stopPropagation(); remove("person"); }}>Remove</button>
                             </div>
                           </div>
                         </>
@@ -490,16 +507,17 @@ export default function App() {
 
                   {/* Garment */}
                   <div>
-                    <input ref={clothRef} type="file" accept="image/*" onChange={e => handleUpload(e,"cloth")} />
-                    <div className={`uzone${clothImg?" has":""}`} onClick={() => !clothImg && (click(), clothRef.current.click())}>
+                    <input ref={clothRef} type="file" accept="image/*" onChange={e => handleUpload(e, "cloth")} />
+                    <div className={`uzone${clothImg ? " has" : ""}`}
+                      onClick={() => !clothImg && (click(), clothRef.current.click())}>
                       {clothImg ? (
                         <>
                           <img src={clothImg} alt="Garment" />
-                          {clothImg && <div className="uzone-badge ok">✓ Ready</div>}
+                          <div className="uzone-badge ok">✓ Ready</div>
                           <div className="uoverlay">
                             <div className="uoverlay-btns">
-                              <button className="uov-btn" onClick={e=>{e.stopPropagation();retake("cloth")}}>Retake</button>
-                              <button className="uov-btn danger" onClick={e=>{e.stopPropagation();remove("cloth")}}>Remove</button>
+                              <button className="uov-btn" onClick={e => { e.stopPropagation(); retake("cloth"); }}>Retake</button>
+                              <button className="uov-btn danger" onClick={e => { e.stopPropagation(); remove("cloth"); }}>Remove</button>
                             </div>
                           </div>
                         </>
@@ -517,39 +535,20 @@ export default function App() {
 
                 {/* Checklist */}
                 <div className="checklist">
-                  <div className={`chk${personImg?" ok":""}`}><div className="chk-dot"/>{personImg?"Customer photo added":"Add customer photo"}</div>
-                  <div className={`chk${clothImg?" ok":""}`}><div className="chk-dot"/>{clothImg?"Garment photo added":"Add garment photo"}</div>
-                  <div className={`chk${apiOk?" ok":""}`}><div className="chk-dot"/>{apiOk?"API key looks good":"Add Replicate API key"}</div>
-                </div>
-
-                {/* API key */}
-                <div className="apisec">
-                  <label className="sec-label" style={{marginBottom:".6rem"}}>Replicate API Key</label>
-                  <input className="finput" type="password"
-                    placeholder="r8_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                    value={apiKey} onChange={e => setApiKey(e.target.value)}
-                    onFocus={() => haptic("light")} />
-                  <div className="api-status">
-                    <div className={`dot ${apiKey.trim()?apiOk?"ok":"bad":"idle"}`} />
-                    <span className="fhint" style={{margin:0}}>
-                      {!apiKey.trim() ? <>Free key at <a href="https://replicate.com" target="_blank">replicate.com</a> → Account → API tokens</>
-                       : apiOk ? "Key format looks correct ✓"
-                       : "Key should start with r8_"}
-                    </span>
-                  </div>
+                  <div className={`chk${personImg ? " ok" : ""}`}><div className="chk-dot" />{personImg ? "✓ Customer photo added" : "Add customer photo"}</div>
+                  <div className={`chk${clothImg  ? " ok" : ""}`}><div className="chk-dot" />{clothImg  ? "✓ Garment photo added" : "Add garment photo"}</div>
                 </div>
 
                 {error && (
                   <div className="errbox">
-                    <strong>Generation Failed</strong>
+                    <strong>⚠ Generation Failed</strong>
                     {error}
                   </div>
                 )}
 
                 {/* Generate */}
                 <div className="genwrap">
-                  <button className="genbtn" onClick={generate}
-                    disabled={!personImg || !clothImg || !apiKey.trim()}>
+                  <button className="genbtn" onClick={generate} disabled={!personImg || !clothImg}>
                     <div className="shine" />
                     <span>✦</span>
                     <span>Generate Try-On</span>
@@ -558,15 +557,14 @@ export default function App() {
               </>
             )}
 
-            {/* ── RESULT ── */}
+            {/* RESULT */}
             {screen === "result" && result && (
-              <div className="resultsec" style={{paddingTop:"1.5rem"}}>
+              <div className="resultsec" style={{ paddingTop: "1.5rem" }}>
                 <div className="rlabel">Your Look</div>
                 <div className="rimgwrap">
                   <img src={result} alt="Try-on result" />
                   <div className="rbadge">✦ AI Generated</div>
                 </div>
-
                 <div className="ractions">
                   <button className="abtn gold" onClick={download}>⬇ Download</button>
                   <button className="abtn" onClick={() => { click(); setShareOpen(true); }}>↗ Share</button>
@@ -576,13 +574,11 @@ export default function App() {
                   <button className="abtn ig" onClick={shareInstagram}>📸 Instagram</button>
                   <button className="abtn" onClick={reset}>↺ New Look</button>
                 </div>
-
-                {/* Thumbnail strip */}
-                <div style={{display:"flex",gap:".6rem",marginTop:".9rem",opacity:.6}}>
-                  <img src={personImg} alt="" style={{width:52,height:70,objectFit:"cover",borderRadius:6,border:"1px solid var(--border)"}} />
-                  <img src={clothImg}  alt="" style={{width:52,height:70,objectFit:"cover",borderRadius:6,border:"1px solid var(--border)"}} />
-                  <div style={{flex:1,display:"flex",alignItems:"center",paddingLeft:".5rem",fontSize:".65rem",color:"var(--muted)",lineHeight:1.4}}>
-                    Tap <em style={{color:"var(--gold)",fontStyle:"normal",margin:"0 .25rem"}}>New Look</em> to try another garment
+                <div style={{ display: "flex", gap: ".6rem", marginTop: ".9rem", opacity: .6 }}>
+                  <img src={personImg} alt="" style={{ width: 52, height: 70, objectFit: "cover", borderRadius: 6, border: "1px solid var(--border)" }} />
+                  <img src={clothImg}  alt="" style={{ width: 52, height: 70, objectFit: "cover", borderRadius: 6, border: "1px solid var(--border)" }} />
+                  <div style={{ flex: 1, display: "flex", alignItems: "center", paddingLeft: ".5rem", fontSize: ".65rem", color: "var(--muted)", lineHeight: 1.4 }}>
+                    Tap <em style={{ color: "var(--gold)", fontStyle: "normal", margin: "0 .25rem" }}>New Look</em> to try another garment
                   </div>
                 </div>
               </div>
@@ -590,18 +586,18 @@ export default function App() {
           </>
         )}
 
-        {/* ── LOADING ── */}
+        {/* LOADING */}
         {loading && (
           <div className="loadover">
             <div className="lring" />
             <div className="ltext">{loadMsg}</div>
-            <div className="lsub">This takes 30–60 seconds</div>
+            <div className="lsub">This takes 30–90 seconds</div>
             <div className="lbar" />
             <div className="lhint">IDM-VTON · Replicate AI</div>
           </div>
         )}
 
-        {/* ── SHARE SHEET ── */}
+        {/* SHARE SHEET */}
         {shareOpen && (
           <div className="sheetbg" onClick={() => setShareOpen(false)}>
             <div className="sheet" onClick={e => e.stopPropagation()}>
@@ -609,13 +605,13 @@ export default function App() {
               <div className="shtitle">Share Your Look</div>
               <div className="shgrid">
                 {[
-                  {icon:"💬",lbl:"WhatsApp",fn:shareWhatsApp},
-                  {icon:"📸",lbl:"Instagram",fn:shareInstagram},
-                  {icon:"📤",lbl:"More Apps",fn:shareNative},
-                  {icon:"⬇️",lbl:"Download",fn:download},
-                  {icon:"🔗",lbl:"Copy Link",fn:copyLink},
-                  {icon:"✕",lbl:"Cancel",fn:()=>{click();setShareOpen(false)}},
-                ].map((item,i) => (
+                  { icon: "💬", lbl: "WhatsApp",  fn: shareWhatsApp },
+                  { icon: "📸", lbl: "Instagram", fn: shareInstagram },
+                  { icon: "📤", lbl: "More Apps", fn: shareNative },
+                  { icon: "⬇️", lbl: "Download",  fn: download },
+                  { icon: "🔗", lbl: "Copy Link", fn: copyLink },
+                  { icon: "✕",  lbl: "Cancel",    fn: () => { click(); setShareOpen(false); } },
+                ].map((item, i) => (
                   <div key={i} className="shi" onClick={item.fn}>
                     <div className="shi-icon">{item.icon}</div>
                     <div className="shi-lbl">{item.lbl}</div>
@@ -627,8 +623,8 @@ export default function App() {
           </div>
         )}
 
-        {/* ── TOAST ── */}
-        <div className={`toast${toastOn?" on":""}`}>{toast}</div>
+        {/* TOAST */}
+        <div className={`toast${toastOn ? " on" : ""}`}>{toast}</div>
       </div>
     </>
   );
