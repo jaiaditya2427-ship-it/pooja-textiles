@@ -34,13 +34,15 @@ const haptic = (t="light") => {
 
 // ── Garment Types ─────────────────────────────────────────────────────────────
 const GARMENT_TYPES = [
-  { label:"T-Shirt",  short:"Top",    icon:"👕", category:"upper_body" },
-  { label:"Pants",    short:"Bottom", icon:"👖", category:"lower_body" },
-  { label:"Dress",    short:"Dress",  icon:"👗", category:"dresses" },
-  { label:"Jacket",   short:"Jacket", icon:"🧥", category:"upper_body" },
+{ label:"T-Shirt / Shirt", short:"Top", icon:"👕", category:"upper_body" },
+{ label:"Pants / Jeans", short:"Pants", icon:"👖", category:"lower_body" },
+{ label:"Dress / Gown", short:"Dress", icon:"👗", category:"dresses" },
+{ label:"Jacket / Coat", short:"Jacket", icon:"🧥", category:"upper_body" },
 
-  { label:"Saree",    short:"Saree",  icon:"🥻", category:"dresses" },
-  { label:"Lehenga",  short:"Lehenga",icon:"✨", category:"dresses" },
+{ label:"Lehenga", short:"Lehenga", icon:"👗", category:"ethnic_wear" },
+{ label:"Saree", short:"Saree", icon:"🥻", category:"ethnic_wear" },
+{ label:"Kurta / Kurti", short:"Kurta", icon:"👘", category:"ethnic_wear" },
+{ label:"Ethnic Jacket", short:"Ethnic", icon:"🧥", category:"ethnic_wear" },,
 ];
 
 const LOAD_MESSAGES = [
