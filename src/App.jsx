@@ -506,11 +506,13 @@ export default function App() {
             <div className="wcontent">
               <div className="wbadge">✦ Powered by Idea Infoline</div>
               <div className="wlogo">Fashion<em> Try‑On</em></div>
-              <div className="wsub">
-  <span style={{ fontSize: "1.4em", fontWeight: 700 }}>
+             <div className="wsub">
+  <div style={{ fontSize: "1.6em", fontWeight: 800 }}>
     POOJA TEXTILES
-  </span>{" "}
-  VIRTUAL FITTING EXPERIENCE
+  </div>
+  <div style={{ marginTop: "4px", fontSize: "0.8em" }}>
+    Virtual Fitting Experience
+  </div>
 </div>
               <div className="wdivider"/>
               <button className="wbtn" onClick={enter}>
