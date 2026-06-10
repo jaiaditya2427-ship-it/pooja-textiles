@@ -500,19 +500,25 @@ export default function App() {
 
         {/* WELCOME */}
         {screen==="welcome" && (
-          <div className={`welcome${wExit?" out":""}`}>
-            <div className="wbg"/>
-            <Particles/>
-            <div className="wcontent">
-              <div className="wbadge">✦ Powered by Idea Infoline</div>
-              <div className="wlogo">Fashion<em> Try‑On</em></div>
-              <div className="wsub">Virtual Fitting Room</div>
-              <div className="wdivider"/>
-              <button className="wbtn" onClick={enter}>
-                <span>Start Experience</span><span style={{fontSize:"1rem"}}>→</span>
-              </button>
-            </div>
-          </div>
+          <div className="wsub">
+  <div style={{
+    fontSize:"1.15rem",
+    fontWeight:"800",
+    letterSpacing:".2em",
+    color:"var(--gold)"
+  }}>
+    POOJA TEXTILES
+  </div>
+
+  <div style={{
+    fontSize:".6rem",
+    letterSpacing:".35em",
+    marginTop:"0.4rem",
+    opacity:0.8
+  }}>
+    VIRTUAL FITTING EXPERIENCE
+  </div>
+</div>
         )}
 
         {/* MAIN + RESULT */}
