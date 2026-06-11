@@ -373,6 +373,11 @@ export default function App() {
   // ── Android-safe upload ──
   const handleUpload = async (e, who) => {
     const file = e.target.files[0]; if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+  showToast("Please use images below 10MB");
+  return;
+}
     e.target.value = ""; click();
     try {
       const dataURL = await readFileAsDataURL(file);
@@ -506,11 +511,30 @@ export default function App() {
             <div className="wcontent">
               <div className="wbadge">✦ Powered by Idea Infoline</div>
               <div className="wlogo">Fashion<em> Try‑On</em></div>
-             <div className="wsub">
-  <div style={{ fontSize: "1.6em", fontWeight: 800 }}>
+             <div className="wsub" style={{ marginTop: "1.5rem" }}>
+  <div
+    style={{
+      fontSize: "3.2rem",
+      fontWeight: 900,
+      letterSpacing: "0.15em",
+      color: "#D4A843",
+      textTransform: "uppercase",
+      lineHeight: "1",
+      textShadow: "0 0 30px rgba(212,168,67,0.3)"
+    }}
+  >
     POOJA TEXTILES
   </div>
-  <div style={{ marginTop: "4px", fontSize: "0.8em" }}>
+
+  <div
+    style={{
+      marginTop: "12px",
+      fontSize: "0.85rem",
+      letterSpacing: "0.35em",
+      textTransform: "uppercase",
+      color: "rgba(255,255,255,0.55)"
+    }}
+  >
     Virtual Fitting Experience
   </div>
 </div>
@@ -554,7 +578,17 @@ export default function App() {
                   <div className="tipbox-icon">💡</div>
                   <div>
                     <strong style={{display:"block",marginBottom:".15rem",color:"var(--gold)"}}>Tips for best results</strong>
-                    Any background works! Make sure person is clearly visible. For garment — product photo or flat lay works best.
+                    For best results:
+• Full body photo
+• Head and feet visible
+• Standing pose
+• Good lighting
+• Single person only
+
+Garment:
+• Flat lay or catalogue image
+• Entire garment visible
+• High resolution image
                   </div>
                 </div>
 

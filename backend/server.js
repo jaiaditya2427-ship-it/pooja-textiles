@@ -159,8 +159,8 @@ app.post("/tryon", async (req, res) => {
           // ✅ Maximum accuracy settings
           is_checked:      true,   // auto-masking for better body detection
           is_checked_crop: true,   // handles partial/half body
-          denoise_steps:   50,     // 30→50: much better detail preservation
-          guidance_scale:  2.5,    // sharper garment detail transfer
+          denoise_steps: 60,     // 30→50: much better detail preservation
+          guidance_scale: 3.5,    // sharper garment detail transfer
           seed:            Math.floor(Math.random() * 99999), // random = better results
         }
       }
