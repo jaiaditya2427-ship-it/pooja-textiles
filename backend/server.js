@@ -27,26 +27,26 @@ const preprocessImage = async (dataUrl, type) => {
     if (type === "person") {
       // Person photo: resize to optimal 768x1024, enhance contrast and sharpness
       processedBuffer = await sharp(buffer)
-        .resize(768, 1024, {
+        .resize(640, 896, {
           fit: "contain",
           background: { r: 255, g: 255, b: 255, alpha: 1 },
           withoutEnlargement: false,
         })
         .sharpen({ sigma: 1.2, m1: 0.5, m2: 0.5 })
         .normalise()
-        .jpeg({ quality: 95, progressive: true })
+        .jpeg({ quality: 85 })
         .toBuffer();
     } else {
       // Garment photo: resize to 768x1024, white background, max sharpness
       processedBuffer = await sharp(buffer)
-        .resize(768, 1024, {
+       .resize(640, 896, { 
           fit: "contain",
           background: { r: 255, g: 255, b: 255, alpha: 1 },
           withoutEnlargement: false,
         })
         .sharpen({ sigma: 1.5, m1: 1.0, m2: 0.5 })
         .normalise()
-        .jpeg({ quality: 98, progressive: true })
+        .jpeg({ quality: 88 })
         .toBuffer();
     }
 
@@ -121,25 +121,8 @@ app.post("/tryon", async (req, res) => {
     console.log("Images preprocessed!");
 
     // ── Step 2: Remove background from person photo ───────────────────────
-    console.log("Step 2: Removing background for cleaner body detection...");
-    let cleanPersonImg = processedPerson;
-    try {
-      console.time("BG REMOVE");
-      
-      const bgRemoveOutput = await replicate.run(
-        "lucataco/remove-bg:95fcc2a26d3899cd6c2691c900465aaeff466285a65c14638cc5f36f34befaf1",
-        { input: { image: processedPerson } }
-      );
-
-console.timeEnd("BG REMOVE");
-      const bgUrl = Array.isArray(bgRemoveOutput) ? String(bgRemoveOutput[0]) : String(bgRemoveOutput);
-      if (bgUrl.startsWith("http")) {
-        cleanPersonImg = bgUrl;
-        console.log("Background removed successfully!");
-      }
-    } catch (e) {
-      console.log("BG removal failed, continuing with original:", e.message);
-    }
+    console.log("Step 2: Skipping background removal for speed");
+let cleanPersonImg = processedPerson;
 
     // ── Step 3: Upload garment to Replicate for better processing ─────────
     console.log("Step 3: Uploading garment image...");
@@ -162,9 +145,9 @@ console.timeEnd("BG REMOVE");
 
           // ✅ Maximum accuracy settings
           is_checked:      true,   // auto-masking for better body detection
-          is_checked_crop: true,   // handles partial/half body
-          denoise_steps: 60,     // 30→50: much better detail preservation
-          guidance_scale: 3.5,    // sharper garment detail transfer
+          is_checked_crop: garment?.category === "upper_body",   // handles partial/half body
+          denoise_steps: 30,     // 30→50: much better detail preservation
+          guidance_scale: 2.5,    // sharper garment detail transfer
           seed:            Math.floor(Math.random() * 99999), // random = better results
         }
       }
