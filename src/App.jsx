@@ -514,7 +514,7 @@ export default function App() {
              <div className="wsub" style={{ marginTop: "1.5rem" }}>
   <div
     style={{
-      fontSize: "2.2rem",
+      fontSize: "2.8rem",
       fontWeight: 900,
       letterSpacing: "0.15em",
       color: "#D4A843",
