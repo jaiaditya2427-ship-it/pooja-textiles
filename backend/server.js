@@ -33,8 +33,8 @@ const preprocessImage = async (dataUrl, type) => {
         withoutEnlargement: false,
         position: "center",
       })
-      .sharpen({ sigma: type === "garment" ? 1.8 : 1.0 })
-      .jpeg({ quality: type === "garment" ? 95 : 90, progressive: false })
+      .sharpen({ sigma: type === "garment" ? 1.4 : 1.0 })
+      .jpeg({ quality: 100, progressive: false })
       .toBuffer();
 
     return `data:image/jpeg;base64,${processedBuffer.toString("base64")}`;
@@ -80,7 +80,7 @@ const buildGarmentDescription = (garment) => {
   "upper body t-shirt. Preserve exact sleeve length (short or half sleeve), exact neckline (V-neck, crew neck), exact fit (slim, regular, oversized), fabric texture, colors, logos, prints, graphics, full sleeves, half sleeves stitching and every design detail exactly as shown in the garment image.",
 
 "Shirt":
-  "upper body button shirt. Preserve exact collar style (formal, spread, button-down, mandarin), exact sleeve length (full or half sleeve), cuffs, buttons, chest pocket, stripes, checks, embroidery, logos, fabric texture, stitching, fit (slim, regular, relaxed), colors and every design detail exactly as shown in the garment image.",
+  "Upper body button shirt. Preserve the exact shirt structure from the person's photo, including the original neckline, collar placement, shoulder alignment, and button placket. Do NOT convert the shirt into a V-neck, round-neck, polo collar, hoodie, sweatshirt, or T-shirt neckline. The output must remain a button shirt with the correct collar matching the reference garment. Preserve the exact collar style (formal, spread, button-down, mandarin, etc.), collar size, collar angle, exact sleeve length (full or half sleeve), cuffs, buttons, chest pocket, stripes, checks, embroidery, logos, fabric texture, stitching, fit (slim, regular, relaxed), colors, and every visible design detail exactly as shown in the garment image. Ensure the generated shirt fits naturally on the person's neck, shoulders, chest, and body while preserving the original pose and body proportions. Replace only the shirt design with the reference garment without altering the person's anatomy or shirt structure.",
     "Pants / Jeans":
       "lower body clothing item - pants or jeans. Preserve exact length (full/cropped/ankle), exact fit (slim/straight/wide-leg), waistband style, all colors, wash, and design details exactly as shown.",
     "Dress / Gown":
@@ -169,15 +169,15 @@ app.post("/tryon", async (req, res) => {
           // 30 steps = fastest with acceptable quality
           // 40 steps = good balance (recommended)
           // 50 steps = best quality, slower
-          denoise_steps: 30,
+          denoise_steps: 28,
 
           // ✅ guidance_scale:
           // 2.0 = fastest, softer garment transfer
           // 2.5 = good balance — garment details clearer
-          guidance_scale: 2.0,
+          guidance_scale: 2.2,
 
           // ✅ Random seed = different result each time (avoids repetition)
-          seed: Math.floor(Math.random() * 99999),
+          seed: 42,
         },
       }
     );
