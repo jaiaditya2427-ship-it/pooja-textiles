@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install Dependencies
@@ -37,4 +37,4 @@ jobs:
           protocol: ftp
           local-dir: ./dist/
           server-dir: ${{ secrets.FTP_SERVER_DIR }}
-          dangerous-clean-slate: false
+          dangerous-clean-slate: true
