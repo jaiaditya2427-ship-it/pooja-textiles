@@ -5,7 +5,12 @@ import App from "./App.jsx";
 // PWA service worker
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/service-worker.js");
+    navigator.serviceWorker.register(
+  "/fashiontryon/poojatextiles/service-worker.js",
+  {
+    scope: "/fashiontryon/poojatextiles/",
+  }
+);
   });
 }
 
