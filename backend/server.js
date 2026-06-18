@@ -33,7 +33,7 @@ const preprocessImage = async (dataUrl, type) => {
         withoutEnlargement: false,
         position: "center",
       })
-      .sharpen({ sigma: type === "garment" ? 1.4 : 1.0 })
+      .sharpen({ sigma: type === "garment" ? 1.8 : 1.0 })
       .jpeg({ quality: 100, progressive: false })
       .toBuffer();
 
@@ -163,7 +163,32 @@ Keep the customer's original shirt geometry exactly the same while transferring 
 };
   return (
     map[garment?.label] ||
-    `${garment?.label || "clothing"} - preserve all design details, colors, patterns, sleeve length, collar and fit exactly as shown in the garment image.`
+    `${garment?.label || "clothing"} - preserve all design details, colors, patterns, sleeve length, collar and fit exactly as shown in the garment image.
+    Preserve garment geometry exactly.
+
+Preserve collar angle.
+
+Preserve collar width.
+
+Preserve collar height.
+
+Preserve neckline depth.
+
+Preserve shoulder seam position.
+
+Preserve sleeve attachment.
+
+Preserve sleeve circumference.
+
+Preserve button spacing.
+
+Preserve shirt silhouette.
+
+Preserve shirt dimensions.
+
+Replace ONLY the fabric appearance.
+
+Do not alter garment construction under any circumstances.`
   );
 };
 
@@ -234,12 +259,12 @@ app.post("/tryon", async (req, res) => {
           // 30 steps = fastest with acceptable quality
           // 40 steps = good balance (recommended)
           // 50 steps = best quality, slower
-          denoise_steps: 35,
+          denoise_steps: 45,
 
           // ✅ guidance_scale:
           // 2.0 = fastest, softer garment transfer
           // 2.5 = good balance — garment details clearer
-          guidance_scale: 2.5,
+          guidance_scale: 3.0,
 
           // ✅ Random seed = different result each time (avoids repetition)
           seed: Math.floor(Math.random() * 999999),
