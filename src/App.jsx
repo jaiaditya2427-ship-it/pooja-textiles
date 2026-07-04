@@ -535,7 +535,7 @@ export default function App() {
       textShadow: "0 0 30px rgba(212,168,67,0.3)"
     }}
   >
-    POOJA TEXTILES
+    POOJA TEXTILESS
   </div>
 
   <div
