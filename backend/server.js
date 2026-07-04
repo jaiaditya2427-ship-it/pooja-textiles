@@ -27,6 +27,7 @@ const preprocessImage = async (dataUrl, type) => {
     const buffer = Buffer.from(base64, "base64");
 
     const processedBuffer = await sharp(buffer)
+      .rotate() // auto-orient using EXIF data (fixes photos coming out rotated/vertical)
       .resize(768, 1024, {
         fit: "contain",
         background: { r: 255, g: 255, b: 255, alpha: 1 },
@@ -341,4 +342,4 @@ app.listen(PORT, () => {
   console.log(`\n✅ Pooja Textiles Backend running on port ${PORT}`);
   console.log(`✅ Replicate API key: ${process.env.REPLICATE_API_KEY ? "SET ✓" : "NOT SET ✗"}`);
   console.log(`✅ Ready to serve try-on requests\n`);
-});
+});});
