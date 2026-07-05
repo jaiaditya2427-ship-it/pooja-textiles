@@ -227,53 +227,37 @@ app.post("/tryon", async (req, res) => {
     ]);
     console.log(`✓ Both uploaded in ${Date.now() - t1}ms`);
 
-    // ── STEP 3: Run IDM-VTON ──────────────────────────────────────────────
-    console.log("⚡ Step 3: Running IDM-VTON AI...");
+        // ── STEP 3: Run CatVTON ─────────────────────────────
+    console.log("⚡ Step 3: Running CatVTON AI...");
     const t2 = Date.now();
 
-    const category = garment?.category || "upper_body";
+const category = garment?.category || "upper_body";
 
-    const output = await replicate.run(
-      "cuuupid/idm-vton:0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985",
-      {
-        input: {
-          // ✅ KEY: person image — preserved body, pose, face, skin tone
-          human_img: personUrl,
+const output = await replicate.run(
+  "zsxkib/cat-vton",
+  {
+    input: {
+      person_image: personUrl,
 
-          // ✅ Garment image
-          garm_img: garmentUrl,
+      cloth_image: garmentUrl,
 
-          // ✅ Detailed description helps preserve garment details
-          garment_des: buildGarmentDescription(garment),
+      cloth_type:
+        category === "lower_body"
+          ? "lower"
+          : category === "dresses"
+          ? "overall"
+          : "upper",
 
-          // ✅ Category — tells model which body part to dress
-          category: category,
+      num_inference_steps: 50,
 
-          // ✅ is_checked: true = model auto-detects masking area
-          // This is critical for body preservation
-          is_checked: true,
+      guidance_scale: 3.5,
 
-          // ✅ is_checked_crop: true = handles partial body / half body photos
-          is_checked_crop: true,
+      seed: Math.floor(Math.random() * 999999),
+    },
+  }
+);
 
-          // ✅ Speed vs Quality balance:
-          // 30 steps = fastest with acceptable quality
-          // 40 steps = good balance (recommended)
-          // 50 steps = best quality, slower
-          denoise_steps: 45,
-
-          // ✅ guidance_scale:
-          // 2.0 = fastest, softer garment transfer
-          // 2.5 = good balance — garment details clearer
-          guidance_scale: 3.0,
-
-          // ✅ Random seed = different result each time (avoids repetition)
-          seed: Math.floor(Math.random() * 999999),
-        },
-      }
-    );
-
-    console.log(`✓ IDM-VTON done in ${Date.now() - t2}ms`);
+console.log(`✓ CatVTON done in ${Date.now() - t2}ms`);
     console.log("Raw output:", JSON.stringify(output).substring(0, 120));
 
     // ── STEP 4: Extract image URL from output ─────────────────────────────
@@ -342,4 +326,4 @@ app.listen(PORT, () => {
   console.log(`\n✅ Pooja Textiles Backend running on port ${PORT}`);
   console.log(`✅ Replicate API key: ${process.env.REPLICATE_API_KEY ? "SET ✓" : "NOT SET ✗"}`);
   console.log(`✅ Ready to serve try-on requests\n`);
-});});
+});;
