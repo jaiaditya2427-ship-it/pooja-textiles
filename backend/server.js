@@ -16,6 +16,31 @@ app.get("/", (req, res) => {
     status: "Pooja Textiles AI Try-On Backend 🚀",
     apiKeySet: !!process.env.REPLICATE_API_KEY,
   });
+}); // ── TEMPORARY: schema inspector ─────────────────────────────────────────────
+app.get("/catvton-flux-schema", async (req, res) => {
+  try {
+    const r = await fetch("https://api.replicate.com/v1/models/mmezhov/catvton-flux", {
+      headers: { Authorization: `Bearer ${process.env.REPLICATE_API_KEY}` },
+    });
+    const data = await r.json();
+
+    if (!r.ok) {
+      return res.status(r.status).json({ success: false, error: data });
+    }
+
+    const schema = data?.latest_version?.openapi_schema;
+    const inputProps = schema?.components?.schemas?.Input?.properties || null;
+    const requiredFields = schema?.components?.schemas?.Input?.required || [];
+
+    return res.json({
+      success: true,
+      model_version_id: data?.latest_version?.id,
+      required_fields: requiredFields,
+      input_fields: inputProps,
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
 });
 
 // ── Preprocess image ──────────────────────────────────────────────────────────
