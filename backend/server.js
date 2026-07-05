@@ -18,6 +18,30 @@ app.get("/", (req, res) => {
   });
 });
 
+// ── Schema inspector (real, this time we actually use the result) ──────────
+app.get("/catvton-flux-schema", async (req, res) => {
+  try {
+    const r = await fetch("https://api.replicate.com/v1/models/mmezhov/catvton-flux", {
+      headers: { Authorization: `Bearer ${process.env.REPLICATE_API_KEY}` },
+    });
+    const data = await r.json();
+    if (!r.ok) return res.status(r.status).json({ success: false, error: data });
+
+    const schema = data?.latest_version?.openapi_schema;
+    const inputProps = schema?.components?.schemas?.Input?.properties || null;
+    const requiredFields = schema?.components?.schemas?.Input?.required || [];
+
+    return res.json({
+      success: true,
+      model_version_id: data?.latest_version?.id,
+      required_fields: requiredFields,
+      input_fields: inputProps,
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // ── NEW: CatVTON-Flux try-on route (v2) ─────────────────────────────────────
 // Uses mmezhov/catvton-flux (CatVTON on the FLUX.1-Fill-dev backbone) instead
 // of the old zsxkib/cat-vton (SD1.5 backbone). Should give much better face/
