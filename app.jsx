@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
 const BACKEND = "https://fashion-tryon-backend1.onrender.com";
+const LOOKS_KEY = "pt_saved_looks_v1";
+const SEEN_TIP_KEY = "pt_seen_tip_v1";
 
 // ── Audio Engine ──────────────────────────────────────────────────────────────
 const AudioEngine = {
@@ -39,19 +41,27 @@ const readFileAsDataURL = (file) => new Promise((res,rej) => {
 
 // Fixes photos coming out sideways/rotated: some mobile webviews don't auto-apply
 // EXIF orientation when rendering <img> tags. createImageBitmap with
-// imageOrientation:"from-image" forces a correct decode regardless of that, and we
-// redraw it onto a canvas so BOTH the on-screen preview and the data sent to the
-// backend are already upright.
+// imageOrientation:"from-image" forces a correct decode regardless of that.
+// Also downsizes large phone photos (many are 4000px+) to a sane max dimension
+// before they're ever base64-encoded, which noticeably speeds up uploads on
+// slow connections without any visible quality loss on screen.
+const MAX_DIMENSION = 1600;
 const normalizeImageOrientation = async (file) => {
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    let { width, height } = bitmap;
+    if (Math.max(width, height) > MAX_DIMENSION) {
+      const scale = MAX_DIMENSION / Math.max(width, height);
+      width = Math.round(width * scale);
+      height = Math.round(height * scale);
+    }
     const canvas = document.createElement("canvas");
-    canvas.width = bitmap.width;
-    canvas.height = bitmap.height;
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext("2d");
-    ctx.drawImage(bitmap, 0, 0);
+    ctx.drawImage(bitmap, 0, 0, width, height);
     bitmap.close?.();
-    return canvas.toDataURL("image/jpeg", 0.95);
+    return canvas.toDataURL("image/jpeg", 0.9);
   } catch (e) {
     // Fallback for browsers without createImageBitmap/imageOrientation support
     return readFileAsDataURL(file);
@@ -59,27 +69,14 @@ const normalizeImageOrientation = async (file) => {
 };
 
 const GARMENT_TYPES = [
-  {
-    label: "T-Shirt",
-    short: "T-Shirt",
-    icon: "👕",
-    category: "upper_body"
-  },
-
-  {
-    label: "Shirt",
-    short: "Shirt",
-    icon: "👔",
-    category: "upper_body"
-  },
-
-  { label: "Pants / Jeans", short: "Pants", icon: "👖", category: "lower_body" },
-  { label: "Dress / Gown", short: "Dress", icon: "👗", category: "dresses" },
-  { label: "Jacket / Coat", short: "Jacket", icon: "🧥", category: "upper_body" },
-
-  { label: "Lehenga", short: "Lehenga", icon: "👗", category: "ethnic_wear" },
-  { label: "Kurta / Kurti", short: "Kurta", icon: "👘", category: "ethnic_wear" },
-  { label: "Ethnic Jacket", short: "Ethnic", icon: "🧥", category: "ethnic_wear" },
+  { label: "T-Shirt",        short: "T-Shirt", icon: "👕", category: "upper_body" },
+  { label: "Shirt",          short: "Shirt",   icon: "👔", category: "upper_body" },
+  { label: "Pants / Jeans",  short: "Pants",   icon: "👖", category: "lower_body" },
+  { label: "Dress / Gown",   short: "Dress",   icon: "👗", category: "dresses" },
+  { label: "Jacket / Coat",  short: "Jacket",  icon: "🧥", category: "upper_body" },
+  { label: "Lehenga",        short: "Lehenga", icon: "🥻", category: "ethnic_wear" },
+  { label: "Kurta / Kurti",  short: "Kurta",   icon: "👘", category: "ethnic_wear" },
+  { label: "Ethnic Jacket",  short: "Ethnic",  icon: "🧥", category: "ethnic_wear" },
 ];
 
 const FRIENDLY_ERRORS = {
@@ -99,6 +96,17 @@ const getFriendlyError = (msg) => {
   return msg || "Something went wrong. Please try again.";
 };
 
+// ── Persisted looks (localStorage) ─────────────────────────────────────────────
+const loadSavedLooks = () => {
+  try {
+    const raw = localStorage.getItem(LOOKS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+};
+const persistSavedLooks = (looks) => {
+  try { localStorage.setItem(LOOKS_KEY, JSON.stringify(looks.slice(0, 12))); } catch {}
+};
+
 // ── CSS ───────────────────────────────────────────────────────────────────────
 const S = `
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;700&family=DM+Sans:wght@300;400;500;600&display=swap');
@@ -111,6 +119,10 @@ const S = `
 }
 html,body{background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .app{min-height:100vh;max-width:430px;margin:0 auto;position:relative}
+button:focus-visible,.uzone:focus-visible,.gc:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* OFFLINE BANNER */
+.offline-banner{position:fixed;top:0;left:0;right:0;z-index:1000;background:var(--red);color:#fff;text-align:center;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;padding:.5rem;animation:fadeUp .3s ease}
 
 /* WELCOME */
 .welcome{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .9s ease,transform .9s ease}
@@ -132,6 +144,7 @@ html,body{background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-ser
 .wbtn::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,.15);transform:translateX(-100%);transition:transform .4s ease}
 .wbtn:hover::after{transform:translateX(0)}
 .wbtn:hover{box-shadow:0 0 40px rgba(212,168,67,.5)}
+.wengine{margin-top:1.4rem;font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(212,168,67,.55);animation:fadeUp .8s ease 1s both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 
 /* HEADER */
@@ -155,7 +168,7 @@ html,body{background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-ser
 .slabel{font-size:.55rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:.35rem}
 
 /* TIP */
-.tipbox{margin:0 1.25rem .75rem;padding:.8rem 1rem;background:rgba(212,168,67,.05);border:1px solid rgba(212,168,67,.12);border-radius:10px;font-size:.68rem;color:rgba(212,168,67,.75);line-height:1.6;display:flex;gap:.6rem}
+.tipbox{margin:0 1.25rem .75rem;padding:.8rem 1rem;background:rgba(212,168,67,.05);border:1px solid rgba(212,168,67,.12);border-radius:10px;font-size:.68rem;color:rgba(212,168,67,.75);line-height:1.6;display:flex;gap:.6rem;white-space:pre-line}
 .tipbox-icon{font-size:1rem;flex-shrink:0}
 
 /* GARMENT SELECTOR */
@@ -177,6 +190,7 @@ html,body{background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-ser
 .uzone:active{transform:scale(.97)}
 .uzone:hover{border-color:var(--gold);background:rgba(212,168,67,.04)}
 .uzone.has{border-style:solid;border-color:var(--border)}
+.uzone.dragover{border-color:var(--gold);background:rgba(212,168,67,.12);transform:scale(1.02)}
 .uzone img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:var(--r)}
 .uoverlay{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;opacity:0;transition:opacity .3s;border-radius:var(--r)}
 .uzone:hover .uoverlay,.uzone:focus-within .uoverlay{opacity:1}
@@ -235,8 +249,11 @@ html,body{background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-ser
 .resultsec{padding:0 1.25rem 2rem}
 .rlabel{font-size:.6rem;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;display:flex;align-items:center;gap:.6rem}
 .rlabel::before,.rlabel::after{content:'';flex:1;height:1px;background:var(--border)}
-.rimgwrap{position:relative;border-radius:var(--r);overflow:hidden;background:var(--card);cursor:zoom-in}
+.rimgwrap{position:relative;border-radius:var(--r);overflow:hidden;background:var(--card);cursor:zoom-in;transition:transform .25s ease;transform-style:preserve-3d;will-change:transform}
 .rimgwrap img{width:100%;display:block;animation:reveal .8s ease}
+.rimgwrap.skel{aspect-ratio:3/4}
+.rimgwrap.skel::before{content:'';position:absolute;inset:0;background:linear-gradient(100deg,var(--card) 30%,#2a2a2a 50%,var(--card) 70%);background-size:200% 100%;animation:shimmer 1.4s ease-in-out infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 @keyframes reveal{from{opacity:0;transform:scale(1.03)}to{opacity:1;transform:scale(1)}}
 .rbadge{position:absolute;bottom:.75rem;left:.75rem;font-size:.55rem;letter-spacing:.16em;text-transform:uppercase;padding:.28rem .65rem;background:rgba(212,168,67,.9);color:#000;font-weight:700;border-radius:4px}
 .rtap-hint{position:absolute;bottom:.75rem;right:.75rem;font-size:.55rem;letter-spacing:.12em;text-transform:uppercase;padding:.28rem .65rem;background:rgba(0,0,0,.5);color:rgba(255,255,255,.6);border-radius:4px}
@@ -249,6 +266,14 @@ html,body{background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-ser
 .abtn.gold:hover{background:var(--gold2);border-color:var(--gold2)}
 .abtn.wa:hover{background:#25D366;border-color:#25D366;color:#000}
 .abtn.ig:hover{background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);border-color:#dc2743}
+
+/* QUICK SWAP GARMENT ROW (on result screen) */
+.qswap{padding:0 1.25rem 0}
+.qswap-row{display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.3rem;scrollbar-width:none}
+.qswap-row::-webkit-scrollbar{display:none}
+.qswap-chip{flex-shrink:0;padding:.5rem .8rem;border:1.5px solid var(--border);border-radius:20px;background:var(--card);display:flex;align-items:center;gap:.35rem;font-size:.65rem;color:var(--cream);cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent}
+.qswap-chip:hover{border-color:var(--gold)}
+.qswap-chip.sel{border-color:var(--gold);background:rgba(212,168,67,.12);color:var(--gold)}
 
 /* BEFORE/AFTER SLIDER */
 .baslider{position:relative;border-radius:var(--r);overflow:hidden;background:var(--card);margin-top:.9rem;touch-action:none}
@@ -263,12 +288,13 @@ html,body{background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-ser
 .ba-handle::after{content:'⟺';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:.8rem;color:#000;z-index:11;pointer-events:none}
 
 /* FULLSCREEN VIEWER */
-.fsviewer{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(20px);animation:fsin .3s ease}
+.fsviewer{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(20px);animation:fsin .3s ease;overflow:hidden}
 @keyframes fsin{from{opacity:0}to{opacity:1}}
-.fsviewer img{max-width:100%;max-height:100vh;object-fit:contain;animation:fsscale .3s ease}
+.fsviewer img{max-width:100%;max-height:100vh;object-fit:contain;animation:fsscale .3s ease;transition:transform .25s ease;touch-action:none}
 @keyframes fsscale{from{transform:scale(.9)}to{transform:scale(1)}}
-.fsclose{position:absolute;top:1.5rem;right:1.5rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:white;width:40px;height:40px;border-radius:50%;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.fsclose{position:absolute;top:1.5rem;right:1.5rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:white;width:40px;height:40px;border-radius:50%;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;z-index:2}
 .fsclose:hover{background:rgba(255,255,255,.2)}
+.fshint{position:absolute;bottom:1.5rem;left:50%;transform:translateX(-50%);font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.4)}
 
 /* SHARE SHEET */
 .sheetbg{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(8px);animation:bgin .3s ease}
@@ -292,6 +318,8 @@ html,body{background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-ser
 
 /* SAVED LOOKS */
 .saved-looks{padding:0 1.25rem .5rem}
+.saved-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}
+.saved-viewall{font-size:.55rem;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);background:none;border:none;cursor:pointer;padding:0}
 .saved-scroll{display:flex;gap:.6rem;overflow-x:auto;padding-bottom:.25rem;scrollbar-width:none}
 .saved-scroll::-webkit-scrollbar{display:none}
 .saved-thumb{flex-shrink:0;width:64px;cursor:pointer;opacity:.7;transition:all .25s}
@@ -299,6 +327,21 @@ html,body{background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-ser
 .saved-thumb img{width:64px;height:85px;object-fit:cover;border-radius:6px;border:1.5px solid var(--border)}
 .saved-thumb.active img{border-color:var(--gold)}
 .saved-thumb-lbl{font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:.3rem;text-align:center}
+
+/* GALLERY MODAL */
+.gallerybg{position:fixed;inset:0;z-index:450;background:rgba(0,0,0,.85);backdrop-filter:blur(10px);display:flex;flex-direction:column;animation:bgin .3s ease}
+.gallery-hdr{display:flex;align-items:center;justify-content:space-between;padding:1.25rem;border-bottom:1px solid var(--border)}
+.gallery-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--cream)}
+.gallery-grid{flex:1;overflow-y:auto;padding:1rem 1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.gallery-item{position:relative;border-radius:10px;overflow:hidden;background:var(--card);cursor:pointer}
+.gallery-item img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block}
+.gallery-item-lbl{position:absolute;bottom:.4rem;left:.4rem;font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;padding:.2rem .45rem;background:rgba(0,0,0,.6);color:#fff;border-radius:4px}
+.gallery-empty{padding:3rem 1.25rem;text-align:center;color:var(--muted);font-size:.75rem;line-height:1.8}
+
+/* CONFETTI */
+.confetti-layer{position:fixed;inset:0;z-index:350;pointer-events:none;overflow:hidden}
+.confetti-piece{position:absolute;top:-5%;font-size:1.1rem;animation:confettiFall linear forwards}
+@keyframes confettiFall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(115vh) rotate(var(--rot));opacity:.9}}
 `;
 
 // ── Particles ─────────────────────────────────────────────────────────────────
@@ -317,6 +360,21 @@ const Particles = () => (
   </div>
 );
 
+// ── Confetti burst on success ──────────────────────────────────────────────────
+const CONFETTI_EMOJI = ["✨","🎉","👗","💫","⭐"];
+const Confetti = () => (
+  <div className="confetti-layer">
+    {Array.from({length:26},(_,i)=>(
+      <span key={i} className="confetti-piece" style={{
+        left: Math.random()*100+"%",
+        animationDuration: (2.2+Math.random()*1.6)+"s",
+        animationDelay: (Math.random()*0.4)+"s",
+        "--rot": (Math.random()>0.5?1:-1)*(180+Math.random()*360)+"deg",
+      }}>{CONFETTI_EMOJI[i % CONFETTI_EMOJI.length]}</span>
+    ))}
+  </div>
+);
+
 // ── Before/After Slider ────────────────────────────────────────────────────────
 const BeforeAfterSlider = ({ before, after }) => {
   const [pos, setPos] = useState(50);
@@ -329,7 +387,7 @@ const BeforeAfterSlider = ({ before, after }) => {
     return Math.min(95, Math.max(5, p));
   };
 
-  const onMouseDown = (e) => { dragging.current = true; };
+  const onMouseDown = () => { dragging.current = true; };
   const onMouseMove = (e) => { if (dragging.current) setPos(getPos(e.clientX)); };
   const onMouseUp   = () => { dragging.current = false; };
   const onTouchMove = (e) => { e.preventDefault(); setPos(getPos(e.touches[0].clientX)); };
@@ -346,14 +404,65 @@ const BeforeAfterSlider = ({ before, after }) => {
       onTouchStart={e=>setPos(getPos(e.touches[0].clientX))}>
       <span className="baslider-label left">Before</span>
       <span className="baslider-label right">After</span>
-      <img className="ba-after" src={after} alt="After"/>
+      <img className="ba-after" src={after} alt="After try-on"/>
       <div className="ba-before-wrap" style={{width:pos+"%"}}>
-        <img className="ba-before" src={before} alt="Before" style={{width:ref.current?.offsetWidth||"100%"}}/>
+        <img className="ba-before" src={before} alt="Before try-on" style={{width:ref.current?.offsetWidth||"100%"}}/>
       </div>
-      <div className="ba-handle" style={{left:pos+"%"}} onMouseDown={onMouseDown}/>
+      <div className="ba-handle" style={{left:pos+"%"}} onMouseDown={onMouseDown} role="slider" aria-label="Before and after comparison slider" tabIndex={0}/>
     </div>
   );
 };
+
+// ── Fullscreen zoomable viewer ──────────────────────────────────────────────────
+const FullscreenViewer = ({ src, onClose }) => {
+  const [scale, setScale] = useState(1);
+  const lastTap = useRef(0);
+
+  const toggleZoom = () => setScale(s => s > 1 ? 1 : 2.4);
+
+  const handleTap = () => {
+    const now = Date.now();
+    if (now - lastTap.current < 300) toggleZoom();
+    lastTap.current = now;
+  };
+
+  return (
+    <div className="fsviewer" onClick={onClose}>
+      <img
+        src={src}
+        alt="Fullscreen try-on result"
+        style={{ transform:`scale(${scale})` }}
+        onClick={(e)=>{ e.stopPropagation(); handleTap(); }}
+      />
+      <button className="fsclose" onClick={onClose} aria-label="Close fullscreen viewer">✕</button>
+      <div className="fshint">Double-tap to {scale>1?"reset":"zoom"}</div>
+    </div>
+  );
+};
+
+// ── Saved looks gallery modal ────────────────────────────────────────────────────
+const GalleryModal = ({ looks, onClose, onSelect }) => (
+  <div className="gallerybg" onClick={onClose}>
+    <div onClick={e=>e.stopPropagation()} style={{display:"flex",flexDirection:"column",height:"100%"}}>
+      <div className="gallery-hdr">
+        <div className="gallery-title">Your Looks</div>
+        <button className="hback" onClick={onClose} aria-label="Close gallery">✕</button>
+      </div>
+      {looks.length === 0 ? (
+        <div className="gallery-empty">No saved looks yet.<br/>Generate a try-on to start your collection ✦</div>
+      ) : (
+        <div className="gallery-grid">
+          {looks.map((look,i)=>(
+            <div key={i} className="gallery-item" onClick={()=>onSelect(look)}>
+              <img src={look.image} alt={`${look.garment} try-on`}/>
+              <div className="gallery-item-lbl">{look.garment}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+);
 
 // ── Main App ──────────────────────────────────────────────────────────────────
 export default function App() {
@@ -366,12 +475,18 @@ export default function App() {
   const [loadMsg,   setLoadMsg]   = useState("Crafting Your Look");
   const [pipeStep,  setPipeStep]  = useState(0);
   const [result,    setResult]    = useState(null);
+  const [resultLoaded, setResultLoaded] = useState(false);
   const [error,     setError]     = useState("");
   const [toast,     setToast]     = useState("");
   const [toastOn,   setToastOn]   = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [fsOpen,    setFsOpen]    = useState(false);
-  const [savedLooks,setSavedLooks]= useState([]);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [savedLooks,setSavedLooks]= useState(loadSavedLooks);
+  const [dragTarget, setDragTarget] = useState(null);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
   const personRef = useRef();
   const clothRef  = useRef();
@@ -382,6 +497,21 @@ export default function App() {
   },[]);
 
   const click = () => { AudioEngine.play("click"); haptic("light"); };
+
+  // ── Persist saved looks whenever they change ──
+  useEffect(() => { persistSavedLooks(savedLooks); }, [savedLooks]);
+
+  // ── Online/offline detection ──
+  useEffect(() => {
+    const goOnline = () => setIsOffline(false);
+    const goOffline = () => setIsOffline(true);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, []);
 
   // ── Back button logic ──
   const handleBack = () => {
@@ -403,21 +533,33 @@ export default function App() {
     setTimeout(()=>setScreen("main"), 900);
   };
 
-  // ── Android-safe upload ──
-  const handleUpload = async (e, who) => {
-    const file = e.target.files[0]; if (!file) return;
-
-    if (file.size > 10 * 1024 * 1024) {
-  showToast("Please use images below 10MB");
-  return;
-}
-    e.target.value = ""; click();
+  // ── Upload handling (tap or drag & drop) ──
+  const processUpload = async (file, who) => {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { showToast("Please use images below 10MB"); return; }
+    if (!file.type.startsWith("image/")) { showToast("Please upload an image file"); return; }
+    click();
     try {
       const dataURL = await normalizeImageOrientation(file);
       if (who==="person") { setPersonImg(dataURL); showToast("✓ Photo ready!"); }
       else                { setClothImg(dataURL);  showToast("✓ Garment ready!"); }
     } catch { showToast("Could not read image. Try another."); }
   };
+
+  const handleUpload = async (e, who) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    await processUpload(file, who);
+  };
+
+  const handleDrop = (e, who) => {
+    e.preventDefault(); e.stopPropagation();
+    setDragTarget(null);
+    const file = e.dataTransfer.files?.[0];
+    processUpload(file, who);
+  };
+  const handleDragOver = (e, who) => { e.preventDefault(); e.stopPropagation(); setDragTarget(who); };
+  const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); };
 
   const retake = (who) => {
     click(); haptic("medium");
@@ -437,6 +579,12 @@ export default function App() {
     showToast("Upload a new garment to try again!");
   };
 
+  // ── Quick swap: retry instantly with a different garment TYPE on same photos ──
+  const quickSwapType = (g) => {
+    click(); haptic("light"); setGarment(g);
+    showToast(`Switched to ${g.short} — tap Generate on the previous screen, or upload a matching garment photo`);
+  };
+
   // ── Pipeline steps ──
   const PIPE_STEPS = [
     "Uploading photos",
@@ -451,7 +599,8 @@ export default function App() {
   // ── Generate ──
   const generate = async () => {
     if (!personImg || !clothImg) { showToast("⚠ Add both photos first"); haptic("heavy"); return; }
-    click(); setLoading(true); setError(""); setResult(null); setPipeStep(0);
+    if (isOffline) { showToast("⚠ You're offline"); haptic("heavy"); return; }
+    click(); setLoading(true); setError(""); setResult(null); setResultLoaded(false); setPipeStep(0);
     setLoadMsg("Preparing your look...");
 
     const pipeInterval = setInterval(()=>{
@@ -480,13 +629,15 @@ export default function App() {
       setPipeStep(PIPE_STEPS.length - 1);
       setLoadMsg("Your look is ready! ✦");
 
-      // Save to history
-      setSavedLooks(prev => [{image:data.image, garment:garment.short||garment.label, ts:Date.now()}, ...prev].slice(0,3));
+      // Save to persisted history
+      setSavedLooks(prev => [{image:data.image, garment:garment.short||garment.label, ts:Date.now()}, ...prev].slice(0,12));
 
       setTimeout(()=>{
         setResult(data.image);
         setScreen("result");
         AudioEngine.play("success"); haptic("success");
+        setShowConfetti(true);
+        setTimeout(()=>setShowConfetti(false), 2600);
       }, 800);
 
     } catch(e) {
@@ -528,13 +679,34 @@ export default function App() {
   const copyLink = async () => { click(); await navigator.clipboard?.writeText(result); showToast("✓ Link copied!"); setShareOpen(false); };
   const reset = () => { click(); AudioEngine.play("whoosh"); setPersonImg(null); setClothImg(null); setResult(null); setError(""); setScreen("main"); };
 
+  // ── Subtle tilt effect on result image (desktop only) ──
+  const onResultMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width - 0.5;
+    const py = (e.clientY - rect.top) / rect.height - 0.5;
+    setTilt({ x: py * -6, y: px * 6 });
+  };
+  const onResultLeave = () => setTilt({ x: 0, y: 0 });
+
+  const openFromGallery = (look) => {
+    click();
+    setResult(look.image);
+    setGalleryOpen(false);
+    setScreen("result");
+  };
+
   const step = !personImg ? 1 : !clothImg ? 2 : 3;
   const showBack = screen !== "welcome";
 
   return (
     <>
       <style>{S}</style>
-      <div className="app">
+
+      {isOffline && (
+        <div className="offline-banner" role="status">⚠ You're offline — check your connection</div>
+      )}
+
+      <div className="app" style={isOffline ? {paddingTop:"2rem"} : undefined}>
 
         {/* WELCOME */}
         {screen==="welcome" && (
@@ -544,37 +716,38 @@ export default function App() {
             <div className="wcontent">
               <div className="wbadge">✦ Powered by Idea Infoline</div>
               <div className="wlogo">Fashion<em> Try‑On</em></div>
-             <div className="wsub" style={{ marginTop: "1.5rem" }}>
-  <div
-    style={{
-      fontSize: "2.6rem",
-      fontWeight: 900,
-      letterSpacing: "0.15em",
-      color: "#D4A843",
-      textTransform: "uppercase",
-      lineHeight: "1",
-      textShadow: "0 0 30px rgba(212,168,67,0.3)"
-    }}
-  >
-    POOJA TEXTILESS
-  </div>
+              <div className="wsub" style={{ marginTop: "1.5rem" }}>
+                <div
+                  style={{
+                    fontSize: "2.6rem",
+                    fontWeight: 900,
+                    letterSpacing: "0.15em",
+                    color: "#D4A843",
+                    textTransform: "uppercase",
+                    lineHeight: "1",
+                    textShadow: "0 0 30px rgba(212,168,67,0.3)"
+                  }}
+                >
+                  POOJA TEXTILES
+                </div>
 
-  <div
-    style={{
-      marginTop: "12px",
-      fontSize: "0.85rem",
-      letterSpacing: "0.35em",
-      textTransform: "uppercase",
-      color: "rgba(255,255,255,0.55)"
-    }}
-  >
-    Virtual Fitting Experience
-  </div>
-</div>
+                <div
+                  style={{
+                    marginTop: "12px",
+                    fontSize: "0.85rem",
+                    letterSpacing: "0.35em",
+                    textTransform: "uppercase",
+                    color: "rgba(255,255,255,0.55)"
+                  }}
+                >
+                  Virtual Fitting Experience
+                </div>
+              </div>
               <div className="wdivider"/>
               <button className="wbtn" onClick={enter}>
                 <span>Start Experience</span><span style={{fontSize:"1rem"}}>→</span>
               </button>
+              <div className="wengine">✦ Now running on CatVTON Engine</div>
             </div>
           </div>
         )}
@@ -584,7 +757,7 @@ export default function App() {
           <>
             <header className="hdr">
               {showBack
-                ? <button className="hback" onClick={handleBack} title="Go back">←</button>
+                ? <button className="hback" onClick={handleBack} title="Go back" aria-label="Go back">←</button>
                 : <div style={{width:32}}/>
               }
               <div className="hlogo">Fashion<em> Try‑On</em></div>
@@ -611,7 +784,7 @@ export default function App() {
                   <div className="tipbox-icon">💡</div>
                   <div>
                     <strong style={{display:"block",marginBottom:".15rem",color:"var(--gold)"}}>Tips for best results</strong>
-                    For best results:
+{`For best results:
 • Full body photo
 • Head and feet visible
 • Standing pose
@@ -621,7 +794,7 @@ export default function App() {
 Garment:
 • Flat lay or catalogue image
 • Entire garment visible
-• High resolution image
+• High resolution image`}
                   </div>
                 </div>
 
@@ -631,6 +804,8 @@ Garment:
                   <div className="gchips">
                     {GARMENT_TYPES.map((g,i)=>(
                       <div key={i} className={`gc${garment.label===g.label?" sel":""}`}
+                        role="button" tabIndex={0}
+                        onKeyDown={e=>e.key==="Enter"&&setGarment(g)}
                         onClick={()=>{ AudioEngine.play("select"); haptic("light"); setGarment(g); }}>
                         <div className="gc-icon">{g.icon}</div>
                         <div className="gc-lbl">{g.short}</div>
@@ -642,13 +817,16 @@ Garment:
                 {/* Upload zones */}
                 <div className="uploadsec">
                   <div>
-                    {/* Android-safe: visible but positioned absolutely */}
                     <input ref={personRef} type="file" accept="image/*"
                       style={{position:"absolute",opacity:0,width:"1px",height:"1px",overflow:"hidden"}}
                       onChange={e=>handleUpload(e,"person")}/>
-                    <div className={`uzone${personImg?" has":""}`}
+                    <div className={`uzone${personImg?" has":""}${dragTarget==="person"?" dragover":""}`}
                       onClick={()=>!personImg&&(click(),personRef.current.click())}
+                      onDragOver={e=>handleDragOver(e,"person")}
+                      onDragLeave={handleDragLeave}
+                      onDrop={e=>handleDrop(e,"person")}
                       role="button" tabIndex={0}
+                      aria-label="Upload customer photo"
                       onKeyDown={e=>e.key==="Enter"&&personRef.current.click()}>
                       {personImg ? (
                         <>
@@ -665,7 +843,7 @@ Garment:
                         <>
                           <div className="u-icon">📷</div>
                           <div className="u-title">Customer</div>
-                          <div className="u-sub">Tap to upload</div>
+                          <div className="u-sub">Tap or drop to upload</div>
                           <div className="u-hint">Any photo • any background • selfie OK</div>
                         </>
                       )}
@@ -676,9 +854,13 @@ Garment:
                     <input ref={clothRef} type="file" accept="image/*"
                       style={{position:"absolute",opacity:0,width:"1px",height:"1px",overflow:"hidden"}}
                       onChange={e=>handleUpload(e,"cloth")}/>
-                    <div className={`uzone${clothImg?" has":""}`}
+                    <div className={`uzone${clothImg?" has":""}${dragTarget==="cloth"?" dragover":""}`}
                       onClick={()=>!clothImg&&(click(),clothRef.current.click())}
+                      onDragOver={e=>handleDragOver(e,"cloth")}
+                      onDragLeave={handleDragLeave}
+                      onDrop={e=>handleDrop(e,"cloth")}
                       role="button" tabIndex={0}
+                      aria-label="Upload garment photo"
                       onKeyDown={e=>e.key==="Enter"&&clothRef.current.click()}>
                       {clothImg ? (
                         <>
@@ -695,7 +877,7 @@ Garment:
                         <>
                           <div className="u-icon">{garment.icon}</div>
                           <div className="u-title">Garment</div>
-                          <div className="u-sub">Tap to upload</div>
+                          <div className="u-sub">Tap or drop to upload</div>
                           <div className="u-hint">Product photo • flat lay • any background</div>
                         </>
                       )}
@@ -719,7 +901,7 @@ Garment:
 
                 {/* Generate */}
                 <div className="genwrap">
-                  <button className="genbtn" onClick={generate} disabled={!personImg||!clothImg}>
+                  <button className="genbtn" onClick={generate} disabled={!personImg||!clothImg||isOffline}>
                     <div className="shine"/>
                     <span>✦</span>
                     <span>Generate Try-On</span>
@@ -729,13 +911,16 @@ Garment:
                 {/* Saved looks */}
                 {savedLooks.length > 0 && (
                   <div className="saved-looks">
-                    <div className="sec-label">Recent Looks</div>
+                    <div className="saved-head">
+                      <div className="sec-label" style={{marginBottom:0,flex:1}}>Recent Looks</div>
+                      <button className="saved-viewall" onClick={()=>{click();setGalleryOpen(true)}}>View All</button>
+                    </div>
                     <div className="saved-scroll">
-                      {savedLooks.map((look,i)=>(
+                      {savedLooks.slice(0,8).map((look,i)=>(
                         <div key={i} className="saved-thumb" onClick={()=>{
                           click(); setResult(look.image); setScreen("result");
                         }}>
-                          <img src={look.image} alt="Saved look"/>
+                          <img src={look.image} alt={`${look.garment} saved look`}/>
                           <div className="saved-thumb-lbl">{look.garment}</div>
                         </div>
                       ))}
@@ -749,10 +934,16 @@ Garment:
             {screen==="result" && result && (
               <div className="resultsec" style={{paddingTop:"1.5rem"}}>
                 <div className="rlabel">Your Look</div>
-                <div className="rimgwrap" onClick={()=>{click();setFsOpen(true)}}>
-                  <img src={result} alt="Try-on result"/>
-                  <div className="rbadge">✦ AI Generated</div>
-                  <div className="rtap-hint">Tap to zoom</div>
+                <div
+                  className={`rimgwrap${resultLoaded?"":" skel"}`}
+                  onClick={()=>{click();setFsOpen(true)}}
+                  onMouseMove={onResultMove}
+                  onMouseLeave={onResultLeave}
+                  style={{ transform: resultLoaded ? `perspective(800px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)` : undefined }}
+                >
+                  <img src={result} alt="Try-on result" onLoad={()=>setResultLoaded(true)} style={{opacity:resultLoaded?1:0}}/>
+                  {resultLoaded && <div className="rbadge">✦ AI Generated</div>}
+                  {resultLoaded && <div className="rtap-hint">Tap to zoom</div>}
                 </div>
 
                 {/* Before / After slider */}
@@ -769,6 +960,19 @@ Garment:
                   <button className="abtn ig" onClick={shareIG}>📸 Instagram</button>
                   <button className="abtn" onClick={generateAgain}>↺ Try Again</button>
                 </div>
+
+                {/* Quick swap garment type */}
+                <div className="qswap" style={{marginTop:"1rem"}}>
+                  <div className="sec-label">Try a different type</div>
+                  <div className="qswap-row">
+                    {GARMENT_TYPES.map((g,i)=>(
+                      <div key={i} className={`qswap-chip${garment.label===g.label?" sel":""}`} onClick={()=>quickSwapType(g)}>
+                        <span>{g.icon}</span><span>{g.short}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <div style={{display:"flex",gap:".6rem",marginTop:".9rem",opacity:.6}}>
                   <img src={personImg} alt="" style={{width:52,height:70,objectFit:"cover",borderRadius:6,border:"1px solid var(--border)"}}/>
                   <img src={clothImg}  alt="" style={{width:52,height:70,objectFit:"cover",borderRadius:6,border:"1px solid var(--border)"}}/>
@@ -790,7 +994,7 @@ Garment:
 
         {/* LOADING */}
         {loading && (
-          <div className="loadover">
+          <div className="loadover" role="status" aria-live="polite">
             <div className="lring"/>
             <div className="ltext">{loadMsg}</div>
             <div className="lsub">This usually takes 15–30 seconds</div>
@@ -806,12 +1010,15 @@ Garment:
           </div>
         )}
 
+        {/* CONFETTI */}
+        {showConfetti && <Confetti/>}
+
         {/* FULLSCREEN VIEWER */}
-        {fsOpen && (
-          <div className="fsviewer" onClick={()=>setFsOpen(false)}>
-            <img src={result} alt="Fullscreen" onClick={e=>e.stopPropagation()}/>
-            <button className="fsclose" onClick={()=>setFsOpen(false)}>✕</button>
-          </div>
+        {fsOpen && <FullscreenViewer src={result} onClose={()=>setFsOpen(false)}/>}
+
+        {/* GALLERY MODAL */}
+        {galleryOpen && (
+          <GalleryModal looks={savedLooks} onClose={()=>setGalleryOpen(false)} onSelect={openFromGallery}/>
         )}
 
         {/* SHARE SHEET */}
@@ -841,7 +1048,7 @@ Garment:
         )}
 
         {/* TOAST */}
-        <div className={`toast${toastOn?" on":""}`}>{toast}</div>
+        <div className={`toast${toastOn?" on":""}`} role="status">{toast}</div>
       </div>
     </>
   );

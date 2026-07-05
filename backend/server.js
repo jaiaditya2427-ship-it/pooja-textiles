@@ -326,4 +326,4 @@ app.listen(PORT, () => {
   console.log(`\n✅ Pooja Textiles Backend running on port ${PORT}`);
   console.log(`✅ Replicate API key: ${process.env.REPLICATE_API_KEY ? "SET ✓" : "NOT SET ✗"}`);
   console.log(`✅ Ready to serve try-on requests\n`);
-});;
+});
