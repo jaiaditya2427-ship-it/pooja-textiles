@@ -19,8 +19,8 @@ app.get("/", (req, res) => {
 });
 
 // ── Preprocess image ──────────────────────────────────────────────────────────
-// IDM-VTON works best at exactly 768x1024 (portrait)
-// We keep portrait for processing, result comes out portrait matching customer pose
+// CatVTON works well at 768x1024 (portrait). We keep portrait for processing,
+// result comes out portrait matching the customer's pose.
 const preprocessImage = async (dataUrl, type) => {
   try {
     const base64 = dataUrl.split(",")[1];
@@ -35,7 +35,7 @@ const preprocessImage = async (dataUrl, type) => {
         position: "center",
       })
       .sharpen({ sigma: type === "garment" ? 1.8 : 1.0 })
-      .jpeg({ quality: 100, progressive: false })
+      .jpeg({ quality: 90, progressive: false })
       .toBuffer();
 
     return `data:image/jpeg;base64,${processedBuffer.toString("base64")}`;
@@ -73,126 +73,6 @@ const uploadToReplicate = async (dataUrl) => {
   }
 };
 
-// ── Garment descriptions ──────────────────────────────────────────────────────
-// Detailed prompts help IDM-VTON preserve garment details accurately
-const buildGarmentDescription = (garment) => {
-  const map = {
-  "T-Shirt":
-    "Upper body t-shirt. Preserve exact sleeve length, neckline (round, crew, V-neck, Henley), fit (slim, regular, oversized), stitching, graphics, logos, prints, colors and fabric texture exactly as shown. Never convert into a collared shirt.",
-
-  "Shirt": `
-The customer is already wearing a collared shirt.
-
-Only transfer the uploaded shirt's fabric, print, embroidery, texture, pattern and color.
-
-Do not redesign the customer's shirt.
-
-Preserve exactly:
-
-- Collar type
-- Collar shape
-- Collar size
-- Collar height
-- Collar opening
-- Sleeve length
-- Half sleeve
-- Full sleeve
-- Shoulder seams
-- Armhole position
-- Chest pocket
-- Pocket position
-- Button placket
-- Buttons
-- Cuffs
-- Shirt length
-- Hem
-- Fit
-- Slim Fit
-- Regular Fit
-- Relaxed Fit
-- Oversized Fit
-
-Supported collars:
-
-- Shirt Collar
-- Spread Collar
-- Button Down Collar
-- Button Up Collar
-- Band Collar
-- Chinese Collar
-- Mandarin Collar
-- Regular Collar
-
-Only replace:
-
-- Fabric
-- Print
-- Pattern
-- Texture
-- Embroidery
-- Logo
-- Color
-
-Never convert into a T-Shirt.
-
-Never change collar style.
-
-Never change sleeve length.
-
-Never reconstruct the shirt.
-
-Keep the customer's original shirt geometry exactly the same while transferring only the visual appearance of the uploaded shirt.
-`,
-
-  "Pants / Jeans":
-    "Lower body pants or jeans. Preserve exact waist, length, fit, pockets, zipper, stitching, wash, color and fabric texture exactly.",
-
-  "Dress / Gown":
-    "Full body dress or gown. Preserve exact neckline, sleeves, silhouette, fit, embroidery, colors, length and fabric exactly.",
-
-  "Jacket / Coat":
-    "Outerwear jacket or coat. Preserve zipper, buttons, lapels, collar, pockets, sleeve length, fit and fabric exactly.",
-
-  "Lehenga":
-    "Indian ethnic lehenga. Preserve embroidery, mirror work, dupatta, flare, colors, borders and fabric exactly.",
-
-  "Kurta / Kurti":
-    "Indian kurta or kurti. Preserve neckline, collar, sleeve length, embroidery, prints, colors and fabric exactly.",
-
-  "Ethnic Jacket":
-    "Indian ethnic jacket. Preserve collar, buttons, embroidery, fit, fabric and colors exactly.",
-};
-  return (
-    map[garment?.label] ||
-    `${garment?.label || "clothing"} - preserve all design details, colors, patterns, sleeve length, collar and fit exactly as shown in the garment image.
-    Preserve garment geometry exactly.
-
-Preserve collar angle.
-
-Preserve collar width.
-
-Preserve collar height.
-
-Preserve neckline depth.
-
-Preserve shoulder seam position.
-
-Preserve sleeve attachment.
-
-Preserve sleeve circumference.
-
-Preserve button spacing.
-
-Preserve shirt silhouette.
-
-Preserve shirt dimensions.
-
-Replace ONLY the fabric appearance.
-
-Do not alter garment construction under any circumstances.`
-  );
-};
-
 // ── Main try-on route ─────────────────────────────────────────────────────────
 app.post("/tryon", async (req, res) => {
   const t0 = Date.now();
@@ -227,37 +107,46 @@ app.post("/tryon", async (req, res) => {
     ]);
     console.log(`✓ Both uploaded in ${Date.now() - t1}ms`);
 
-        // ── STEP 3: Run CatVTON ─────────────────────────────
+    // ── STEP 3: Run CatVTON ─────────────────────────────────────────────────
     console.log("⚡ Step 3: Running CatVTON AI...");
     const t2 = Date.now();
 
-const category = garment?.category || "upper_body";
+    const category = garment?.category || "upper_body";
 
-const output = await replicate.run(
-  "zsxkib/cat-vton",
-  {
-    input: {
-      person_image: personUrl,
+    const output = await replicate.run(
+      "zsxkib/cat-vton",
+      {
+        input: {
+          person_image: personUrl,
+          cloth_image: garmentUrl,
 
-      cloth_image: garmentUrl,
+          cloth_type:
+            category === "lower_body"
+              ? "lower"
+              : category === "dresses"
+              ? "overall"
+              : "upper",
 
-      cloth_type:
-        category === "lower_body"
-          ? "lower"
-          : category === "dresses"
-          ? "overall"
-          : "upper",
+          // Lowered from 50 → 30. CatVTON's own quality curve flattens out
+          // well before 50 steps for this kind of garment-transfer task —
+          // this alone typically cuts model runtime by ~35-40% with no
+          // visible quality difference. Bump back toward 40-45 only if you
+          // start noticing texture/edge artifacts on tricky prints.
+          num_inference_steps: 30,
 
-      num_inference_steps: 50,
+          // Slightly higher than before (3.5 → 4.0): pulls the output
+          // closer to the garment image's exact print/pattern/color instead
+          // of letting the model "reinterpret" it, which is what most
+          // "wrong fit" complaints usually come down to. If results start
+          // looking over-sharpened or artifact-y, dial back to 3.5.
+          guidance_scale: 4.0,
 
-      guidance_scale: 3.5,
+          seed: Math.floor(Math.random() * 999999),
+        },
+      }
+    );
 
-      seed: Math.floor(Math.random() * 999999),
-    },
-  }
-);
-
-console.log(`✓ CatVTON done in ${Date.now() - t2}ms`);
+    console.log(`✓ CatVTON done in ${Date.now() - t2}ms`);
     console.log("Raw output:", JSON.stringify(output).substring(0, 120));
 
     // ── STEP 4: Extract image URL from output ─────────────────────────────
