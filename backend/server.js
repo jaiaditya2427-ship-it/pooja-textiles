@@ -48,9 +48,9 @@ const preprocessImage = async (dataUrl, type) => {
 // ── Upload image to Replicate file storage ────────────────────────────────────
 const uploadToReplicate = async (dataUrl) => {
   try {
-    const base64   = dataUrl.split(",")[1];
+    const base64 = dataUrl.split(",")[1];
     const mimeType = dataUrl.split(";")[0].split(":")[1] || "image/jpeg";
-    const buffer   = Buffer.from(base64, "base64");
+    const buffer = Buffer.from(base64, "base64");
 
     const res = await fetch("https://api.replicate.com/v1/files", {
       method: "POST",
@@ -77,10 +77,10 @@ const uploadToReplicate = async (dataUrl) => {
 // Detailed prompts help IDM-VTON preserve garment details accurately
 const buildGarmentDescription = (garment) => {
   const map = {
-  "T-Shirt":
-    "Upper body t-shirt. Preserve exact sleeve length, neckline (round, crew, V-neck, Henley), fit (slim, regular, oversized), stitching, graphics, logos, prints, colors and fabric texture exactly as shown. Never convert into a collared shirt.",
+    "T-Shirt":
+      "Upper body t-shirt. Preserve exact sleeve length, neckline (round, crew, V-neck, Henley), fit (slim, regular, oversized), stitching, graphics, logos, prints, colors and fabric texture exactly as shown. Never convert into a collared shirt.",
 
-  "Shirt": `
+    "Shirt": `
 The customer is already wearing a collared shirt.
 
 Only transfer the uploaded shirt's fabric, print, embroidery, texture, pattern and color.
@@ -144,24 +144,24 @@ Never reconstruct the shirt.
 Keep the customer's original shirt geometry exactly the same while transferring only the visual appearance of the uploaded shirt.
 `,
 
-  "Pants / Jeans":
-    "Lower body pants or jeans. Preserve exact waist, length, fit, pockets, zipper, stitching, wash, color and fabric texture exactly.",
+    "Pants / Jeans":
+      "Lower body pants or jeans. Preserve exact waist, length, fit, pockets, zipper, stitching, wash, color and fabric texture exactly.",
 
-  "Dress / Gown":
-    "Full body dress or gown. Preserve exact neckline, sleeves, silhouette, fit, embroidery, colors, length and fabric exactly.",
+    "Dress / Gown":
+      "Full body dress or gown. Preserve exact neckline, sleeves, silhouette, fit, embroidery, colors, length and fabric exactly.",
 
-  "Jacket / Coat":
-    "Outerwear jacket or coat. Preserve zipper, buttons, lapels, collar, pockets, sleeve length, fit and fabric exactly.",
+    "Jacket / Coat":
+      "Outerwear jacket or coat. Preserve zipper, buttons, lapels, collar, pockets, sleeve length, fit and fabric exactly.",
 
-  "Lehenga":
-    "Indian ethnic lehenga. Preserve embroidery, mirror work, dupatta, flare, colors, borders and fabric exactly.",
+    "Lehenga":
+      "Indian ethnic lehenga. Preserve embroidery, mirror work, dupatta, flare, colors, borders and fabric exactly.",
 
-  "Kurta / Kurti":
-    "Indian kurta or kurti. Preserve neckline, collar, sleeve length, embroidery, prints, colors and fabric exactly.",
+    "Kurta / Kurti":
+      "Indian kurta or kurti. Preserve neckline, collar, sleeve length, embroidery, prints, colors and fabric exactly.",
 
-  "Ethnic Jacket":
-    "Indian ethnic jacket. Preserve collar, buttons, embroidery, fit, fabric and colors exactly.",
-};
+    "Ethnic Jacket":
+      "Indian ethnic jacket. Preserve collar, buttons, embroidery, fit, fabric and colors exactly.",
+  };
   return (
     map[garment?.label] ||
     `${garment?.label || "clothing"} - preserve all design details, colors, patterns, sleeve length, collar and fit exactly as shown in the garment image.
@@ -227,37 +227,37 @@ app.post("/tryon", async (req, res) => {
     ]);
     console.log(`✓ Both uploaded in ${Date.now() - t1}ms`);
 
-        // ── STEP 3: Run CatVTON ─────────────────────────────
+    // ── STEP 3: Run CatVTON ─────────────────────────────
     console.log("⚡ Step 3: Running CatVTON AI...");
     const t2 = Date.now();
 
-const category = garment?.category || "upper_body";
+    const category = garment?.category || "upper_body";
 
-const output = await replicate.run(
-  "zsxkib/cat-vton",
-  {
-    input: {
-      person_image: personUrl,
+    const output = await replicate.run(
+      "chenxwh/cat-vton",
+      {
+        input: {
+          person_image: personUrl,
 
-      cloth_image: garmentUrl,
+          cloth_image: garmentUrl,
 
-      cloth_type:
-        category === "lower_body"
-          ? "lower"
-          : category === "dresses"
-          ? "overall"
-          : "upper",
+          cloth_type:
+            category === "lower_body"
+              ? "lower"
+              : category === "dresses"
+                ? "overall"
+                : "upper",
 
-      num_inference_steps: 50,
+          num_inference_steps: 50,
 
-      guidance_scale: 3.5,
+          guidance_scale: 3.5,
 
-      seed: Math.floor(Math.random() * 999999),
-    },
-  }
-);
+          seed: Math.floor(Math.random() * 999999),
+        },
+      }
+    );
 
-console.log(`✓ CatVTON done in ${Date.now() - t2}ms`);
+    console.log(`✓ CatVTON done in ${Date.now() - t2}ms`);
     console.log("Raw output:", JSON.stringify(output).substring(0, 120));
 
     // ── STEP 4: Extract image URL from output ─────────────────────────────
