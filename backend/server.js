@@ -18,6 +18,89 @@ app.get("/", (req, res) => {
   });
 });
 
+// ── NEW: CatVTON-Flux try-on route (v2) ─────────────────────────────────────
+// Uses mmezhov/catvton-flux (CatVTON on the FLUX.1-Fill-dev backbone) instead
+// of the old zsxkib/cat-vton (SD1.5 backbone). Should give much better face/
+// identity preservation. Test this against a few real photos before fully
+// switching the frontend over from /tryon to /tryon-v2.
+app.post("/tryon-v2", async (req, res) => {
+  const t0 = Date.now();
+  console.log("\n── New Try-On Request (CatVTON-Flux) ──────────────────────");
+
+  try {
+    if (!process.env.REPLICATE_API_KEY) {
+      return res.status(500).json({ success: false, error: "REPLICATE_API_KEY not set on server." });
+    }
+
+    const { personImg, clothImg, garment } = req.body;
+    if (!personImg || !clothImg) {
+      return res.status(400).json({ success: false, error: "personImg and clothImg are required." });
+    }
+
+    console.log("⚡ Preprocessing both images in parallel...");
+    const [processedPerson, processedCloth] = await Promise.all([
+      preprocessImage(personImg, "person"),
+      preprocessImage(clothImg, "garment"),
+    ]);
+
+    console.log("⚡ Uploading both images to Replicate in parallel...");
+    const [personUrl, garmentUrl] = await Promise.all([
+      uploadToReplicate(processedPerson),
+      uploadToReplicate(processedCloth),
+    ]);
+
+    console.log("⚡ Running CatVTON-Flux...");
+    const t2 = Date.now();
+
+    // Best-guess input shape based on the model's underlying CLI
+    // (--image, --mask, --garment, --seed, --steps). If this errors,
+    // Replicate's error message will name the exact field it expected —
+    // paste that error back and we fix the field names in one pass.
+    const output = await replicate.run(
+      "mmezhov/catvton-flux",
+      {
+        input: {
+          image: personUrl,
+          garment: garmentUrl,
+          seed: 42,
+          num_inference_steps: 30,
+        },
+      }
+    );
+
+    console.log(`✓ CatVTON-Flux done in ${Date.now() - t2}ms`);
+    console.log("Raw output:", JSON.stringify(output)?.substring(0, 150));
+
+    let imageUrl = null;
+    if (Array.isArray(output)) {
+      for (const item of output) {
+        const str = String(item);
+        if (str.startsWith("http")) { imageUrl = str; break; }
+        if (item?.url) { imageUrl = String(item.url); break; }
+      }
+    } else if (output) {
+      const str = String(output);
+      if (str.startsWith("http")) imageUrl = str;
+    }
+
+    if (!imageUrl?.startsWith("http")) {
+      console.error("No valid image URL in output:", output);
+      return res.status(500).json({ success: false, error: "AI did not return a valid image.", raw: output });
+    }
+
+    console.log(`✅ TOTAL: ${Date.now() - t0}ms`);
+    return res.json({ success: true, image: imageUrl });
+
+  } catch (err) {
+    console.error("❌ CatVTON-Flux Error:", err.message);
+    // Surface the raw Replicate error so we can see the exact expected field names
+    return res.status(500).json({
+      success: false,
+      error: err.message || "Something went wrong.",
+    });
+  }
+});
+
 // ── Preprocess image ──────────────────────────────────────────────────────────
 // CatVTON works well at 768x1024 (portrait). We keep portrait for processing,
 // result comes out portrait matching the customer's pose.
