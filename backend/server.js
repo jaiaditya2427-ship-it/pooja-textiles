@@ -27,20 +27,33 @@ const preprocessImage = async (dataUrl, type) => {
     const buffer = Buffer.from(base64, "base64");
 
     const processedBuffer = await sharp(buffer)
-      .rotate() // auto-orient using EXIF data (fixes photos coming out rotated/vertical)
-      .resize(768, 1024, {
-        fit: "contain",
-        background: { r: 255, g: 255, b: 255, alpha: 1 },
+      .rotate()
+
+      // preserve body + garment proportions
+      // prevents collar/neck/sleeve stretching
+      .resize({
+        width: 1024,
+        height: 1024,
+        fit: "inside",
         withoutEnlargement: false,
-        position: "center",
       })
-      .sharpen({ sigma: type === "garment" ? 1.8 : 1.0 })
-      .jpeg({ quality: 90, progressive: false })
+
+      .sharpen({
+        sigma: type === "garment" ? 1.2 : 0.8
+      })
+
+      .jpeg({
+        quality: 100,
+        progressive: false,
+        mozjpeg: true
+      })
+
       .toBuffer();
 
     return `data:image/jpeg;base64,${processedBuffer.toString("base64")}`;
+
   } catch (e) {
-    console.log("Preprocess failed, using original:", e.message);
+    console.log("Preprocess failed:", e.message);
     return dataUrl;
   }
 };
@@ -48,9 +61,9 @@ const preprocessImage = async (dataUrl, type) => {
 // ── Upload image to Replicate file storage ────────────────────────────────────
 const uploadToReplicate = async (dataUrl) => {
   try {
-    const base64   = dataUrl.split(",")[1];
+    const base64 = dataUrl.split(",")[1];
     const mimeType = dataUrl.split(";")[0].split(":")[1] || "image/jpeg";
-    const buffer   = Buffer.from(base64, "base64");
+    const buffer = Buffer.from(base64, "base64");
 
     const res = await fetch("https://api.replicate.com/v1/files", {
       method: "POST",
@@ -118,30 +131,74 @@ app.post("/tryon", async (req, res) => {
       {
         input: {
           person_image: personUrl,
+
           cloth_image: garmentUrl,
 
           cloth_type:
             category === "lower_body"
               ? "lower"
               : category === "dresses"
-              ? "overall"
-              : "upper",
+                ? "overall"
+                : "upper",
 
-          // Lowered from 50 → 30. CatVTON's own quality curve flattens out
-          // well before 50 steps for this kind of garment-transfer task —
-          // this alone typically cuts model runtime by ~35-40% with no
-          // visible quality difference. Bump back toward 40-45 only if you
-          // start noticing texture/edge artifacts on tricky prints.
-          num_inference_steps: 30,
+          prompt: `
+Professional fashion virtual try-on.
 
-          // Slightly higher than before (3.5 → 4.0): pulls the output
-          // closer to the garment image's exact print/pattern/color instead
-          // of letting the model "reinterpret" it, which is what most
-          // "wrong fit" complaints usually come down to. If results start
-          // looking over-sharpened or artifact-y, dial back to 3.5.
-          guidance_scale: 4.0,
+IMPORTANT:
+Preserve the customer's original clothing structure and body fitting exactly.
 
-          seed: Math.floor(Math.random() * 999999),
+Keep exactly the same:
+
+- collar type
+- collar angle
+- collar width
+- collar height
+- collar opening
+- V-neck depth
+- neckline shape
+- neck curve
+- button placket position
+- button spacing
+- pocket location
+- shoulder seams
+- sleeve length
+- sleeve width
+- cuff position
+- shirt length
+- shirt width
+- waist fitting
+- oversized/slim/regular fit
+- garment silhouette
+
+Do not convert:
+- shirt into t-shirt
+- t-shirt into shirt
+- V-neck into round neck
+- collar shirt into non-collar shirt
+- half sleeve into full sleeve
+
+Only transfer from garment image:
+- fabric
+- color
+- print
+- embroidery
+- pattern
+- logo
+- texture
+
+Do not redesign the garment.
+Do not hallucinate new fashion details.
+Maintain realistic store catalogue quality.
+`,
+
+          // More steps = cleaner borders/collars
+          num_inference_steps: 60,
+
+          // Lower guidance preserves original geometry better
+          guidance_scale: 2.5,
+
+          // Fixed seed gives stable professional results
+          seed: 12345,
         },
       }
     );
