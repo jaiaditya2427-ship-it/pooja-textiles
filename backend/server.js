@@ -234,7 +234,7 @@ app.post("/tryon", async (req, res) => {
     const category = garment?.category || "upper_body";
 
     const output = await replicate.run(
-      "mmezhov/catvton-flux",
+      "mmezhov/catvton-flux:cc41d1b963023987ed2ddf26e9264efcc96ee076640115c303f95b0010f6a958",
       {
         input: {
           person_image: personUrl,
