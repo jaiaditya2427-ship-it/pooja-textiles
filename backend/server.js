@@ -241,6 +241,8 @@ app.post("/tryon", async (req, res) => {
 
           cloth_image: garmentUrl,
 
+          hf_token: process.env.HF_TOKEN,
+
           cloth_type:
             category === "lower_body"
               ? "lower"
