@@ -1,6 +1,6 @@
 // Bump this on every deploy that changes app code — it forces old
 // caches (and the stale index.html/JS they hold) to be thrown away.
-const CACHE_NAME = "pooja-textiles-v3";
+const CACHE_NAME = "pooja-textiles-v4";
 
 const urlsToCache = [
   "/fashiontryon/poojatextiles/manifest.json",
@@ -32,12 +32,9 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Network-first for navigation/HTML/JS/CSS: always try to fetch the latest
-// version first (so new deploys show up immediately), and only fall back to
-// the cache if the network request fails (e.g. offline). This is what was
-// missing before — the old "cache-first" strategy meant returning users kept
-// getting a permanently stale index.html + JS bundle no matter how many times
-// the app was redeployed.
+// Network-first for everything: always try to fetch the latest version
+// first (so new deploys show up immediately), and only fall back to the
+// cache if the network request fails (e.g. offline).
 self.addEventListener("fetch", (event) => {
   const req = event.request;
 
