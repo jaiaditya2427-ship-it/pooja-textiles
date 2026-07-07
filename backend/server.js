@@ -81,13 +81,16 @@ app.post("/tryon-v2", async (req, res) => {
     // Replicate's error message will name the exact field it expected —
     // paste that error back and we fix the field names in one pass.
     const output = await replicate.run(
-      "mmezhov/catvton-flux",
+      "mmezhov/catvton-flux:cc41d1b963023987ed2ddf26e9264efcc96ee076640115c303f95b0010f6a958",
       {
         input: {
-          image: personUrl,
+          try_on: true,
+
           garment: garmentUrl,
-          seed: 42,
-          num_inference_steps: 30,
+
+          hf_token: process.env.HF_TOKEN,
+
+          num_steps: 30
         },
       }
     );
@@ -227,90 +230,68 @@ app.post("/tryon", async (req, res) => {
     ]);
     console.log(`✓ Both uploaded in ${Date.now() - t1}ms`);
 
-    // ── STEP 3: Run CatVTON ─────────────────────────────────────────────────
-    console.log("⚡ Step 3: Running CatVTON AI...");
+    // ── STEP 3: Run IDM-VTON ─────────────────────────────────────────────────
+    // FIX: zsxkib/cat-vton was removed/renamed by its author on Replicate and
+    // now 404s. Switched to cuuupid/idm-vton, which this app ran on before its
+    // migration to CatVTON, using the same field names that worked previously.
+    //
+    // ⚠ LICENSE NOTE: idm-vton on Replicate is CC BY-NC-SA 4.0 — non-commercial
+    // use only. This unblocks tonight's client demo, but if this app is being
+    // sold/used commercially long-term, swap to a properly commercial-licensed
+    // provider (e.g. FASHN.ai's API) before ongoing production use.
+    console.log("⚡ Step 3: Running IDM-VTON AI...");
     const t2 = Date.now();
 
     const category = garment?.category || "upper_body";
 
-    const output = await replicate.run(
-      "zsxkib/cat-vton",
-      {
-        input: {
-          person_image: personUrl,
-
-          cloth_image: garmentUrl,
-
-          cloth_type:
-            category === "lower_body"
-              ? "lower"
-              : category === "dresses"
-                ? "overall"
-                : "upper",
-
-          prompt: `
-Professional fashion virtual try-on.
-
-IMPORTANT:
+    const garmentDescription = `
+Professional ecommerce fashion try-on.
 Preserve the customer's original clothing structure and body fitting exactly.
 
 Keep exactly the same:
-
-- collar type
-- collar angle
-- collar width
-- collar height
-- collar opening
-- V-neck depth
-- neckline shape
-- neck curve
-- button placket position
-- button spacing
+- collar shape, type, angle, width, height, opening
+- V-neck depth, neckline shape, neck curve
+- button placket position, button spacing
 - pocket location
 - shoulder seams
-- sleeve length
-- sleeve width
-- cuff position
-- shirt length
-- shirt width
-- waist fitting
+- sleeve length, sleeve width, cuff position
+- shirt length, shirt width, waist fitting
 - oversized/slim/regular fit
 - garment silhouette
 
 Do not convert:
-- shirt into t-shirt
-- t-shirt into shirt
+- shirt into t-shirt, t-shirt into shirt
 - V-neck into round neck
 - collar shirt into non-collar shirt
 - half sleeve into full sleeve
 
-Only transfer from garment image:
-- fabric
-- color
-- print
-- embroidery
-- pattern
-- logo
-- texture
-
-Do not redesign the garment.
-Do not hallucinate new fashion details.
+Only transfer from garment image: fabric, color, print, embroidery, pattern, logo, texture.
+Do not redesign the garment. Do not hallucinate new fashion details.
 Maintain realistic store catalogue quality.
-`,
+`;
 
-          // More steps = cleaner borders/collars
-          num_inference_steps: 60,
-
-          // Lower guidance preserves original geometry better
-          guidance_scale: 2.5,
-
-          // Fixed seed gives stable professional results
+    const output = await replicate.run(
+      "cuuupid/idm-vton:0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985",
+      {
+        input: {
+          human_img: personUrl,
+          garm_img: garmentUrl,
+          garment_des: garmentDescription,
+          category:
+            category === "lower_body"
+              ? "lower_body"
+              : category === "dresses"
+                ? "dresses"
+                : "upper_body",
+          crop: false,
+          force_dc: false,
+          steps: 40,
           seed: 12345,
         },
       }
     );
 
-    console.log(`✓ CatVTON done in ${Date.now() - t2}ms`);
+    console.log(`✓ IDM-VTON done in ${Date.now() - t2}ms`);
     console.log("Raw output:", JSON.stringify(output).substring(0, 120));
 
     // ── STEP 4: Extract image URL from output ─────────────────────────────
