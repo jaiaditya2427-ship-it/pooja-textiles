@@ -18,245 +18,478 @@ app.use(
 app.use(express.json({ limit: "50mb" }));
 
 const PIXELAPI_KEY = process.env.PIXELAPI_KEY;
-// PixelAPI's CDN blocks requests without a proper User-Agent header (see their
-// troubleshooting docs) — always send one.
+
 const PIXELAPI_HEADERS_BASE = {
   Authorization: `Bearer ${PIXELAPI_KEY}`,
   "User-Agent": "PoojaTextilesFashionTryOn/1.0",
 };
 
+
+// HEALTH
 app.get("/", (req, res) => {
   res.json({
-    status: "Pooja Textiles PixelAPI Try-On Backend 🚀",
+    status: "Pooja Textiles Backend Running 🚀",
     pixelApiKeySet: !!PIXELAPI_KEY,
   });
 });
 
-// ── IMAGE PREPROCESS ─────────────────────────────────────────────────────────
-// PixelAPI recommends: person photo 768x1024+, garment photo 512x512+
+
+// IMAGE OPTIMIZER
 const preprocessImage = async (dataUrl, type) => {
   try {
     const base64 = dataUrl.split(",")[1];
     const buffer = Buffer.from(base64, "base64");
 
-    const target =
-      type === "garment" ? { width: 1024, height: 1024 } : { width: 1024, height: 1365 };
+    const size =
+      type === "person"
+        ? { width: 1024, height: 1365 }
+        : { width: 1024, height: 1024 };
+
 
     const processed = await sharp(buffer)
       .rotate()
       .resize({
-        width: target.width,
-        height: target.height,
+        width: size.width,
+        height: size.height,
         fit: "inside",
-        withoutEnlargement: false,
       })
-      .jpeg({ quality: 95, mozjpeg: true })
+      .jpeg({
+        quality: 95,
+        mozjpeg: true,
+      })
       .toBuffer();
 
-    return `data:image/jpeg;base64,${processed.toString("base64")}`;
-  } catch (err) {
-    console.log("Preprocess failed:", err.message);
+
+    return `data:image/jpeg;base64,${processed.toString(
+      "base64"
+    )}`;
+
+  } catch (e) {
+
+    console.log(
+      "Preprocess failed:",
+      e.message
+    );
+
     return dataUrl;
   }
 };
-// ── FABRIC TO VIRTUAL GARMENT ────────────────────────────────────────────────
+
+
+
+// ⭐ FABRIC → REAL GARMENT CREATOR
+
 const createVirtualGarment = async (fabricDataUrl) => {
-  try {
-    console.log("👕 Creating virtual garment from fabric");
-
-    const base64 = fabricDataUrl.split(",")[1];
-    const fabricBuffer = Buffer.from(base64, "base64");
-
-    const shirtShape = Buffer.from(`
-      <svg width="1024" height="1024">
-        <path d="
-        M350 120
-        L512 60
-        L674 120
-        L900 300
-        L760 520
-        L690 420
-        L690 950
-        L334 950
-        L334 420
-        L264 520
-        L124 300
-        Z"
-        fill="white"/>
-      </svg>
-    `);
-
-    const fabric = await sharp(fabricBuffer)
-      .resize(1024, 1024)
-      .toBuffer();
-
-    const garment = await sharp({
-      create: {
-        width: 1024,
-        height: 1024,
-        channels: 4,
-        background: { r: 0, g: 0, b: 0, alpha: 0 }
-      }
-    })
-      .composite([
-        {
-          input: fabric,
-          blend: "over"
-        },
-        {
-          input: shirtShape,
-          blend: "dest-in"
-        }
-      ])
-      .png()
-      .toBuffer();
-
-
-    return `data:image/png;base64,${garment.toString("base64")}`;
-
-  } catch (err) {
-    console.log("Fabric conversion failed:", err.message);
-    return fabricDataUrl;
-  }
-};
-// Strip the "data:image/...;base64," prefix — PixelAPI wants the raw base64
-// string only, not a data URL and not a public URL.
-const toRawBase64 = (dataUrl) => dataUrl.split(",")[1] || dataUrl;
-
-// ── TRY-ON ROUTE (PixelAPI) ──────────────────────────────────────────────────
-app.post("/tryon", async (req, res) => {
-  const start = Date.now();
-  console.log("\n── New PixelAPI Try-On Request ──");
 
   try {
-    if (!PIXELAPI_KEY) {
-      return res.status(500).json({ success: false, error: "PIXELAPI_KEY not set on server." });
-    }
 
-    const { personImg, clothImg, garment } = req.body;
-
-    if (!personImg || !clothImg) {
-      return res.status(400).json({ success: false, error: "Missing images" });
-    }
-
-    console.log("⚡ creating garment from fabric");
-
-    const virtualCloth = await createVirtualGarment(clothImg);
     console.log(
-      "Virtual garment created:",
-      virtualCloth.length
+      "👕 Creating premium garment from fabric"
     );
 
-    console.log("⚡ preprocessing");
 
-    const [personProcessed, clothProcessed] = await Promise.all([
-      preprocessImage(personImg, "person"),
-      preprocessImage(virtualCloth, "garment"),
-    ]);
-    // PixelAPI's /v1/virtual-tryon endpoint takes raw base64 image strings
-    // directly in the JSON body — no separate upload/hosting step needed.
-    const personB64 = toRawBase64(personProcessed);
-    const garmentB64 = toRawBase64(clothProcessed);
+    const base64 =
+      fabricDataUrl.split(",")[1];
 
-    // Map your app's garment label to PixelAPI's accepted category enum.
-    // PixelAPI rejects anything else (it does NOT accept "upper_body" etc.).
-    const rawLabel = (garment?.label || "").toLowerCase();
-    const rawCategory = garment?.category || "upper_body";
+    const fabricBuffer =
+      Buffer.from(base64, "base64");
 
-    let category;
-    if (rawLabel.includes("lehenga")) category = "lehenga";
-    else if (rawLabel.includes("kurta") || rawLabel.includes("kurti")) category = "kurti";
-    else if (rawLabel.includes("saree") || rawLabel.includes("sari")) category = "saree";
-    else if (rawLabel.includes("sherwani") || (rawCategory === "ethnic_wear" && rawLabel.includes("ethnic jacket"))) category = "sherwani";
-    else if (rawLabel.includes("dress") || rawLabel.includes("gown") || rawCategory === "dresses") category = "dress";
-    else if (rawCategory === "lower_body") category = "lowerbody";
-    else category = "upperbody";
 
-    console.log(`Category resolved: "${garment?.label}" (${rawCategory}) → "${category}"`);
 
-    console.log("⚡ Submitting PixelAPI job...");
-    const submitRes = await fetch("https://api.pixelapi.dev/v1/virtual-tryon", {
-      method: "POST",
-      headers: {
-        ...PIXELAPI_HEADERS_BASE,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        person_image: personB64,
-        garment_image: garmentB64,
-        category,
-      }),
-    });
+    // make repeated textile pattern
+    const tile = await sharp(fabricBuffer)
+      .resize(300, 300)
+      .toBuffer();
 
-    const submitData = await submitRes.json();
 
-    if (!submitRes.ok) {
-      console.error("PixelAPI submit error:", JSON.stringify(submitData));
-      const detail = submitData.detail;
-      const msg =
-        typeof detail === "string"
-          ? detail
-          : detail?.message || detail?.error || submitData.error || "Failed to start generation";
-      return res.status(400).json({ success: false, error: msg });
-    }
 
-    const jobId = submitData.job_id;
-    console.log(`Job submitted: ${jobId} (credits used: ${submitData.credits_used})`);
+    const fabricCanvas =
+      await sharp({
+        create: {
+          width: 1024,
+          height: 1365,
+          channels: 3,
+          background: "#ffffff",
+        },
+      })
+        .composite([
+          {
+            input: tile,
+            tile: true,
+          },
+        ])
+        .toBuffer();
 
-    // ── Poll for result ─────────────────────────────────────────────────────
-    let output = null;
-    const maxWaitMs = 10 * 60 * 1000; // waits 10 minutes
-    const intervalMs = 3000;
-    let elapsed = 0;
 
-    while (elapsed < maxWaitMs) {
-      await new Promise((r) => setTimeout(r, intervalMs));
-      elapsed += intervalMs;
 
-      const pollRes = await fetch(`https://api.pixelapi.dev/v1/virtual-tryon/jobs/${jobId}`, {
-        headers: PIXELAPI_HEADERS_BASE,
-      });
-      const pollData = await pollRes.json();
-      console.log(`[${elapsed / 1000}s] status: ${pollData.status}`);
+    // realistic shirt template
+    const mask = Buffer.from(`
 
-      if (pollData.status === "completed") {
-        // PixelAPI returns the result under "result_image_b64", not "output".
-        output = pollData.result_image_b64;
-        break;
-      }
+<svg width="1024" height="1365">
 
-      if (pollData.status === "failed") {
-        console.error("PixelAPI job failed:", pollData.error_message || pollData.error);
-        return res.status(500).json({
-          success: false,
-          error: pollData.error_message || pollData.error || "AI generation failed",
-        });
-      }
-    }
+<path fill="white"
 
-    if (!output) {
-      return res.status(408).json({ success: false, error: "Timed out waiting for result. Please try again." });
-    }
+d="
+M370 160
 
-    // Result comes back as a base64 PNG (no prefix) — wrap it as a data URL.
-    const imageDataUrl = output.startsWith("data:") ? output : `data:image/png;base64,${output}`;
+C430 240
+590 240
+650 160
 
-    console.log(`✅ DONE ${Date.now() - start}ms`);
-    return res.json({ success: true, image: imageDataUrl });
-  } catch (err) {
-    console.error("❌ ERROR:", err.message);
-    return res.status(500).json({ success: false, error: err.message });
+L850 270
+
+C940 330
+960 430
+900 520
+
+L780 720
+
+L700 660
+
+L700 1220
+
+C640 1280
+380 1280
+320 1220
+
+L320 660
+
+L240 720
+
+L120 520
+
+C60 430
+80 330
+170 270
+
+Z"
+
+/>
+
+</svg>
+
+`);
+
+
+
+    const shirt =
+      await sharp(fabricCanvas)
+        .composite([
+          {
+            input: mask,
+            blend: "dest-in",
+          },
+        ])
+        .png()
+        .toBuffer();
+
+
+
+    const final =
+      await sharp({
+        create: {
+          width:1024,
+          height:1365,
+          channels:3,
+          background:"#ffffff",
+        },
+      })
+        .composite([
+          {
+            input: shirt,
+          },
+        ])
+        .jpeg({
+          quality:95,
+        })
+        .toBuffer();
+
+
+
+    return (
+      "data:image/jpeg;base64," +
+      final.toString("base64")
+    );
+
+
+  } catch(err){
+
+    console.log(
+      "Garment creator failed:",
+      err.message
+    );
+
+    return fabricDataUrl;
+
   }
+};
+
+
+
+const toRawBase64 = (img) =>
+  img.split(",")[1] || img;
+
+
+
+
+// TRY ON ROUTE
+
+app.post("/tryon", async (req,res)=>{
+
+const start = Date.now();
+
+try{
+
+if(!PIXELAPI_KEY){
+
+return res.status(500).json({
+success:false,
+error:"PIXELAPI key missing"
 });
 
-// ── HEALTH CHECK ─────────────────────────────────────────────────────────────
-app.get("/ping", (req, res) => {
-  res.json({ alive: true, time: Date.now() });
+}
+
+
+const {
+personImg,
+clothImg,
+garment
+}=req.body;
+
+
+if(!personImg || !clothImg){
+
+return res.status(400).json({
+success:false,
+error:"Images missing"
 });
 
-const PORT = process.env.PORT || 5000;
+}
 
-app.listen(PORT, () => {
-  console.log(`✅ Pooja Textiles Backend running on port ${PORT}`);
-  console.log(`✅ PixelAPI key: ${PIXELAPI_KEY ? "SET ✓" : "NO ✗"}`);
+
+
+console.log("Fabric → garment");
+
+const virtualCloth =
+await createVirtualGarment(clothImg);
+
+
+
+const [
+personProcessed,
+clothProcessed
+] =
+await Promise.all([
+
+preprocessImage(
+personImg,
+"person"
+),
+
+preprocessImage(
+virtualCloth,
+"garment"
+)
+
+]);
+
+
+
+let category="upperbody";
+
+
+const label =
+(garment?.label || "")
+.toLowerCase();
+
+
+if(label.includes("saree"))
+category="saree";
+
+else if(label.includes("kurti"))
+category="kurti";
+
+else if(label.includes("dress"))
+category="dress";
+
+else if(label.includes("lehenga"))
+category="lehenga";
+
+
+
+console.log(
+"PixelAPI category:",
+category
+);
+
+
+
+const submit =
+await fetch(
+"https://api.pixelapi.dev/v1/virtual-tryon",
+{
+
+method:"POST",
+
+headers:{
+...PIXELAPI_HEADERS_BASE,
+"Content-Type":
+"application/json"
+},
+
+
+body:JSON.stringify({
+
+person_image:
+toRawBase64(personProcessed),
+
+garment_image:
+toRawBase64(clothProcessed),
+
+category
+
+})
+
+});
+
+
+const data =
+await submit.json();
+
+
+
+if(!submit.ok){
+
+return res.status(400).json({
+success:false,
+error:
+data.error ||
+"PixelAPI failed"
+});
+
+}
+
+
+
+let output=null;
+
+let waited=0;
+
+while(waited < 600000){
+
+await new Promise(
+r=>setTimeout(r,3000)
+);
+
+waited +=3000;
+
+
+const poll =
+await fetch(
+`https://api.pixelapi.dev/v1/virtual-tryon/jobs/${data.job_id}`,
+{
+headers:
+PIXELAPI_HEADERS_BASE
+}
+);
+
+
+const result =
+await poll.json();
+
+
+console.log(
+"status:",
+result.status
+);
+
+
+
+if(
+result.status==="completed"
+){
+
+output =
+result.result_image_b64;
+
+break;
+
+}
+
+
+if(result.status==="failed"){
+
+throw new Error(
+"AI generation failed"
+);
+
+}
+
+}
+
+
+
+if(!output){
+
+return res.status(408).json({
+success:false,
+error:"Timeout"
+});
+
+}
+
+
+
+res.json({
+
+success:true,
+
+image:
+`data:image/png;base64,${output}`
+
+});
+
+
+console.log(
+"DONE",
+Date.now()-start
+);
+
+
+}catch(e){
+
+console.log(e);
+
+res.status(500).json({
+success:false,
+error:e.message
+});
+
+}
+
+});
+
+
+
+// ping
+
+app.get("/ping",(req,res)=>{
+
+res.json({
+alive:true
+});
+
+});
+
+
+const PORT =
+process.env.PORT || 5000;
+
+
+app.listen(PORT,()=>{
+
+console.log(
+`✅ Backend running ${PORT}`
+);
+
 });
