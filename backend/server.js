@@ -138,7 +138,7 @@ app.post("/tryon", async (req, res) => {
 
     // ── Poll for result ─────────────────────────────────────────────────────
     let output = null;
-    const maxWaitMs = 90000;
+    const maxWaitMs = 10 * 60 * 1000; // waits 10 minutes
     const intervalMs = 3000;
     let elapsed = 0;
 
