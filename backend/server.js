@@ -121,14 +121,24 @@ app.post("/tryon", async (req, res) => {
     console.log("PERSON URL:", personUrl);
     console.log("GARMENT URL:", garmentUrl);
 
-    // Map your app's category values to PixelAPI's expected categories
+    // Map your app's garment label to PixelAPI's exact accepted category
+    // enum: upperbody, lowerbody, dress, saree, lehenga, kurti, sherwani.
+    // PixelAPI rejects anything else (it does NOT accept "upper_body" etc.),
+    // and ethnic wear needs its own specific value rather than a generic
+    // upper/lower/full split.
+    const rawLabel = (garment?.label || "").toLowerCase();
     const rawCategory = garment?.category || "upper_body";
-    const category =
-      rawCategory === "dresses" || rawCategory === "full_body"
-        ? "full_body"
-        : rawCategory === "lower_body"
-          ? "lower_body"
-          : "upper_body";
+
+    let category;
+    if (rawLabel.includes("lehenga")) category = "lehenga";
+    else if (rawLabel.includes("kurta") || rawLabel.includes("kurti")) category = "kurti";
+    else if (rawLabel.includes("saree") || rawLabel.includes("sari")) category = "saree";
+    else if (rawLabel.includes("sherwani") || (rawCategory === "ethnic_wear" && rawLabel.includes("ethnic jacket"))) category = "sherwani";
+    else if (rawLabel.includes("dress") || rawLabel.includes("gown") || rawCategory === "dresses") category = "dress";
+    else if (rawCategory === "lower_body") category = "lowerbody";
+    else category = "upperbody";
+
+    console.log(`Category resolved: "${garment?.label}" (${rawCategory}) → "${category}"`);
 
     console.log("⚡ Submitting PixelAPI job...");
     const submitRes = await fetch("https://api.pixelapi.dev/v1/virtual-tryon", {
