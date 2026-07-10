@@ -1,6 +1,6 @@
 {
-  "name": "Pooja Textiles AI Try-On",
-  "short_name": "Pooja Try-On",
+  "name": "Fashion Try-On AI",
+  "short_name": "Fashion Try-On",
 
   "start_url": "/fashiontryon/poojatextiles/",
   "scope": "/fashiontryon/poojatextiles/",

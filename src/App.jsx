@@ -1,10 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
 const BACKEND = "https://fashion-tryon-backend1.onrender.com";
-// TEMP TESTING TOGGLE: switch between "/tryon" (old CatVTON/SD1.5) and
-// "/tryon-v2" (new CatVTON-Flux) without touching any other code.
-// Set back to "/tryon" any time to instantly revert to the working version.
-const TRYON_ENDPOINT = "/tryon";
 const LOOKS_KEY = "pt_saved_looks_v1";
 const SEEN_TIP_KEY = "pt_seen_tip_v1";
 
@@ -615,7 +611,7 @@ export default function App() {
       try { await fetch(`${BACKEND}/`); } catch(_) {}
       setPipeStep(1); setLoadMsg("AI is working...");
 
-      const res = await fetch(`${BACKEND}${TRYON_ENDPOINT}`, {
+      const res = await fetch(`${BACKEND}/tryon`, {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({

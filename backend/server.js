@@ -1,144 +1,211 @@
 import dotenv from "dotenv";
 dotenv.config();
+
 import express from "express";
 import cors from "cors";
+import sharp from "sharp";
 
 const app = express();
 
-app.use(cors({ origin: "*", methods: ["GET", "POST"], allowedHeaders: ["Content-Type"] }));
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"],
+  })
+);
+
 app.use(express.json({ limit: "50mb" }));
 
-const API_KEY = process.env.REPLICATE_API_KEY;
+const REPLICATE_API_KEY = process.env.REPLICATE_API_KEY; // used only for temporary public image hosting
+const PIXELAPI_KEY = process.env.PIXELAPI_KEY;
 
 app.get("/", (req, res) => {
-  res.json({ status: "Fashion Try-On Backend is running 🚀", apiKeySet: !!API_KEY });
+  res.json({
+    status: "Pooja Textiles PixelAPI Try-On Backend 🚀",
+    replicateKeySet: !!REPLICATE_API_KEY,
+    pixelApiKeySet: !!PIXELAPI_KEY,
+  });
 });
 
-app.post("/tryon", async (req, res) => {
+// ── IMAGE PREPROCESS ─────────────────────────────────────────────────────────
+// PixelAPI recommends: person photo 768x1024+, garment photo 512x512+
+const preprocessImage = async (dataUrl, type) => {
   try {
-    if (!API_KEY) {
-      return res.status(500).json({ success: false, error: "REPLICATE_API_KEY is not set" });
+    const base64 = dataUrl.split(",")[1];
+    const buffer = Buffer.from(base64, "base64");
+
+    const target =
+      type === "garment" ? { width: 1024, height: 1024 } : { width: 1024, height: 1365 };
+
+    const processed = await sharp(buffer)
+      .rotate()
+      .resize({
+        width: target.width,
+        height: target.height,
+        fit: "inside",
+        withoutEnlargement: false,
+      })
+      .jpeg({ quality: 95, mozjpeg: true })
+      .toBuffer();
+
+    return `data:image/jpeg;base64,${processed.toString("base64")}`;
+  } catch (err) {
+    console.log("Preprocess failed:", err.message);
+    return dataUrl;
+  }
+};
+
+// ── UPLOAD TO GET A PUBLIC HTTPS URL ─────────────────────────────────────────
+// PixelAPI requires publicly accessible URLs, not raw base64. We reuse
+// Replicate's file storage (already have this key) purely as a temporary
+// public host — has nothing to do with running a Replicate model here.
+const uploadForPublicUrl = async (dataUrl) => {
+  const base64 = dataUrl.split(",")[1];
+  const buffer = Buffer.from(base64, "base64");
+
+  const response = await fetch("https://api.replicate.com/v1/files", {
+    method: "POST",
+    headers: {
+      Authorization: `Token ${REPLICATE_API_KEY}`,
+      "Content-Type": "image/jpeg",
+    },
+    body: buffer,
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Image hosting upload failed: ${errText}`);
+  }
+
+  const file = await response.json();
+  const url = file.urls?.get || file.url;
+  if (!url) throw new Error("No public URL returned from image host");
+  return url;
+};
+
+// ── TRY-ON ROUTE (PixelAPI) ──────────────────────────────────────────────────
+app.post("/tryon", async (req, res) => {
+  const start = Date.now();
+  console.log("\n── New PixelAPI Try-On Request ──");
+
+  try {
+    if (!PIXELAPI_KEY) {
+      return res.status(500).json({ success: false, error: "PIXELAPI_KEY not set on server." });
+    }
+    if (!REPLICATE_API_KEY) {
+      return res.status(500).json({ success: false, error: "REPLICATE_API_KEY not set on server (needed for image hosting)." });
     }
 
     const { personImg, clothImg, garment } = req.body;
 
     if (!personImg || !clothImg) {
-      return res.status(400).json({ success: false, error: "personImg and clothImg are required" });
+      return res.status(400).json({ success: false, error: "Missing images" });
     }
 
-    const uploadImage = async (dataUrl) => {
-      const base64 = dataUrl.split(",")[1];
-      const mimeType = dataUrl.split(";")[0].split(":")[1] || "image/jpeg";
-      const buffer = Buffer.from(base64, "base64");
+    console.log("⚡ preprocessing");
+    const [personProcessed, clothProcessed] = await Promise.all([
+      preprocessImage(personImg, "person"),
+      preprocessImage(clothImg, "garment"),
+    ]);
 
-      const uploadRes = await fetch("https://api.replicate.com/v1/files", {
-        method: "POST",
-        headers: {
-          Authorization: `Token ${API_KEY}`,
-          "Content-Type": mimeType,
-          "Content-Length": buffer.length,
-        },
-        body: buffer,
-      });
+    console.log("⚡ uploading for public URLs");
+    const [personUrl, garmentUrl] = await Promise.all([
+      uploadForPublicUrl(personProcessed),
+      uploadForPublicUrl(clothProcessed),
+    ]);
 
-      if (!uploadRes.ok) {
-        const err = await uploadRes.json().catch(() => ({}));
-        console.error("Upload error:", err);
-        return dataUrl;
-      }
+    console.log("PERSON URL:", personUrl);
+    console.log("GARMENT URL:", garmentUrl);
 
-      const file = await uploadRes.json();
-      console.log("Uploaded file URL:", file.urls?.get || file.url);
-      return file.urls?.get || file.url || dataUrl;
-    };
+    // Map your app's category values to PixelAPI's expected categories
+    const rawCategory = garment?.category || "upper_body";
+    const category =
+      rawCategory === "dresses" || rawCategory === "full_body"
+        ? "full_body"
+        : rawCategory === "lower_body"
+          ? "lower_body"
+          : "upper_body";
 
-    console.log("Uploading images...");
-    const personUrl = await uploadImage(personImg);
-    const clothUrl = await uploadImage(clothImg);
-    console.log("Images uploaded!");
-
-    const createRes = await fetch("https://api.replicate.com/v1/predictions", {
+    console.log("⚡ Submitting PixelAPI job...");
+    const submitRes = await fetch("https://api.pixelapi.dev/v1/virtual-tryon", {
       method: "POST",
       headers: {
-        Authorization: `Token ${API_KEY}`,
+        Authorization: `Bearer ${PIXELAPI_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "c871bb9b046607b680449ecbae55fd8c6d945e0a1948644bf2361b3d021d3ff4",
-        input: {
-          human_img: personUrl,
-          garm_img: clothUrl,
-          garment_des: garment?.label
-            ? `a ${garment.label.toLowerCase()}, exact original collar/neckline shape, exact sleeve length, exact fit, realistic ecommerce fashion photography`
-            : "clothing item, exact original structure and fit, realistic ecommerce fashion photography",
-          category: garment?.category || "upper_body",
-          is_checked: true,
-          is_checked_crop: false,
-          denoise_steps: 40,
-          seed: Math.floor(Math.random() * 1000000),
-        },
+        person_image: personUrl,
+        garment_image: garmentUrl,
+        category,
+        n_steps: 30,
       }),
     });
 
-    const prediction = await createRes.json();
+    const submitData = await submitRes.json();
 
-    if (!createRes.ok) {
-      console.error("Replicate create error:", prediction);
-      return res.status(400).json({ success: false, error: prediction.detail || prediction.error || "Failed to start AI generation" });
+    if (!submitRes.ok) {
+      console.error("PixelAPI submit error:", submitData);
+      return res.status(400).json({
+        success: false,
+        error: submitData.detail || submitData.error || "Failed to start generation",
+      });
     }
 
-    console.log(`Prediction created: ${prediction.id}`);
+    const jobId = submitData.job_id;
+    console.log(`Job submitted: ${jobId} (credits used: ${submitData.credits_used})`);
 
+    // ── Poll for result ─────────────────────────────────────────────────────
     let output = null;
+    const maxWaitMs = 90000;
+    const intervalMs = 3000;
+    let elapsed = 0;
 
-    for (let i = 0; i < 60; i++) {
-      await new Promise((r) => setTimeout(r, 3000));
+    while (elapsed < maxWaitMs) {
+      await new Promise((r) => setTimeout(r, intervalMs));
+      elapsed += intervalMs;
 
-      const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-        headers: { Authorization: `Token ${API_KEY}` },
+      const pollRes = await fetch(`https://api.pixelapi.dev/v1/virtual-tryon/jobs/${jobId}`, {
+        headers: { Authorization: `Bearer ${PIXELAPI_KEY}` },
       });
+      const pollData = await pollRes.json();
+      console.log(`[${elapsed / 1000}s] status: ${pollData.status}`);
 
-      const data = await pollRes.json();
-      console.log(`Poll ${i + 1}: status = ${data.status}`);
-
-      if (data.status === "succeeded") {
-        console.log("Raw output:", JSON.stringify(data.output));
-
-        const raw = data.output;
-        if (typeof raw === "string") {
-          output = raw;
-        } else if (Array.isArray(raw)) {
-          const first = raw[0];
-          if (typeof first === "string") output = first;
-          else if (first?.url) output = first.url;
-          else output = String(first);
-        } else if (raw && typeof raw === "object") {
-          output = raw.url || raw.image || Object.values(raw)[0];
-        }
-
-        console.log("Final image URL:", output);
+      if (pollData.status === "completed") {
+        output = pollData.output;
         break;
       }
 
-      if (data.status === "failed") {
-        console.error("Prediction failed:", data.error);
-        return res.status(500).json({ success: false, error: data.error || "AI model failed" });
+      if (pollData.status === "failed") {
+        console.error("PixelAPI job failed:", pollData.error);
+        return res.status(500).json({ success: false, error: pollData.error || "AI generation failed" });
       }
     }
 
     if (!output) {
-      return res.status(408).json({ success: false, error: "Timed out. Please try again." });
+      return res.status(408).json({ success: false, error: "Timed out waiting for result. Please try again." });
     }
 
-    return res.json({ success: true, image: output });
+    // output is base64 (may or may not include the data: prefix)
+    const imageDataUrl = output.startsWith("data:") ? output : `data:image/jpeg;base64,${output}`;
+
+    console.log(`✅ DONE ${Date.now() - start}ms`);
+    return res.json({ success: true, image: imageDataUrl });
   } catch (err) {
-    console.error("Server error:", err);
-    return res.status(500).json({ success: false, error: err.message || "Unexpected server error" });
+    console.error("❌ ERROR:", err.message);
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 
+// ── HEALTH CHECK ─────────────────────────────────────────────────────────────
+app.get("/ping", (req, res) => {
+  res.json({ alive: true, time: Date.now() });
+});
+
 const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
-  console.log(`✅ Backend running on port ${PORT}`);
-  console.log(`✅ Replicate API key: ${API_KEY ? "SET ✓" : "NOT SET ✗"}`);
+  console.log(`✅ Pooja Textiles Backend running on port ${PORT}`);
+  console.log(`✅ PixelAPI key: ${PIXELAPI_KEY ? "SET ✓" : "NO ✗"}`);
+  console.log(`✅ Replicate key (hosting only): ${REPLICATE_API_KEY ? "SET ✓" : "NO ✗"}`);
 });
