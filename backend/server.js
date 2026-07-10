@@ -59,7 +59,66 @@ const preprocessImage = async (dataUrl, type) => {
     return dataUrl;
   }
 };
+// ── FABRIC TO VIRTUAL GARMENT ────────────────────────────────────────────────
+const createVirtualGarment = async (fabricDataUrl) => {
+  try {
+    console.log("👕 Creating virtual garment from fabric");
 
+    const base64 = fabricDataUrl.split(",")[1];
+    const fabricBuffer = Buffer.from(base64, "base64");
+
+    const shirtShape = Buffer.from(`
+      <svg width="1024" height="1024">
+        <path d="
+        M350 120
+        L512 60
+        L674 120
+        L900 300
+        L760 520
+        L690 420
+        L690 950
+        L334 950
+        L334 420
+        L264 520
+        L124 300
+        Z"
+        fill="white"/>
+      </svg>
+    `);
+
+    const fabric = await sharp(fabricBuffer)
+      .resize(1024, 1024)
+      .toBuffer();
+
+    const garment = await sharp({
+      create: {
+        width: 1024,
+        height: 1024,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
+      }
+    })
+      .composite([
+        {
+          input: fabric,
+          blend: "over"
+        },
+        {
+          input: shirtShape,
+          blend: "dest-in"
+        }
+      ])
+      .png()
+      .toBuffer();
+
+
+    return `data:image/png;base64,${garment.toString("base64")}`;
+
+  } catch (err) {
+    console.log("Fabric conversion failed:", err.message);
+    return fabricDataUrl;
+  }
+};
 // Strip the "data:image/...;base64," prefix — PixelAPI wants the raw base64
 // string only, not a data URL and not a public URL.
 const toRawBase64 = (dataUrl) => dataUrl.split(",")[1] || dataUrl;
@@ -80,12 +139,17 @@ app.post("/tryon", async (req, res) => {
       return res.status(400).json({ success: false, error: "Missing images" });
     }
 
+    console.log("⚡ creating garment from fabric");
+
+    const virtualCloth = await createVirtualGarment(clothImg);
+
+
     console.log("⚡ preprocessing");
+
     const [personProcessed, clothProcessed] = await Promise.all([
       preprocessImage(personImg, "person"),
-      preprocessImage(clothImg, "garment"),
+      preprocessImage(virtualCloth, "garment"),
     ]);
-
     // PixelAPI's /v1/virtual-tryon endpoint takes raw base64 image strings
     // directly in the JSON body — no separate upload/hosting step needed.
     const personB64 = toRawBase64(personProcessed);
