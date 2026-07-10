@@ -64,13 +64,16 @@ const uploadForPublicUrl = async (dataUrl) => {
   const base64 = dataUrl.split(",")[1];
   const buffer = Buffer.from(base64, "base64");
 
+  const form = new FormData();
+  form.append("content", new Blob([buffer], { type: "image/jpeg" }), "image.jpg");
+
   const response = await fetch("https://api.replicate.com/v1/files", {
     method: "POST",
     headers: {
       Authorization: `Token ${REPLICATE_API_KEY}`,
-      "Content-Type": "image/jpeg",
+      // Do NOT set Content-Type manually — fetch sets the correct multipart boundary itself
     },
-    body: buffer,
+    body: form,
   });
 
   if (!response.ok) {
