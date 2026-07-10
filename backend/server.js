@@ -142,7 +142,10 @@ app.post("/tryon", async (req, res) => {
     console.log("⚡ creating garment from fabric");
 
     const virtualCloth = await createVirtualGarment(clothImg);
-
+    console.log(
+      "Virtual garment created:",
+      virtualCloth.length
+    );
 
     console.log("⚡ preprocessing");
 
