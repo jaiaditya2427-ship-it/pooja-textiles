@@ -1,9 +1,17 @@
+<<<<<<< HEAD
 import "dotenv/config";
+=======
+import dotenv from "dotenv";
+dotenv.config();
+>>>>>>> 3721339911efb63a0d3e218bc2bca258a9d1d79a
 
 import express from "express";
 import cors from "cors";
 import sharp from "sharp";
+<<<<<<< HEAD
 import authRoutes, { requireAuth } from "./auth.js";
+=======
+>>>>>>> 3721339911efb63a0d3e218bc2bca258a9d1d79a
 
 const app = express();
 
@@ -27,14 +35,21 @@ const PIXELAPI_HEADERS_BASE = {
 // HEALTH
 app.get("/", (req, res) => {
   res.json({
+<<<<<<< HEAD
     status: "Fashion Try-On Backend Running 🚀",
+=======
+    status: "Pooja Textiles Backend Running 🚀",
+>>>>>>> 3721339911efb63a0d3e218bc2bca258a9d1d79a
     pixelApiKeySet: !!PIXELAPI_KEY,
   });
 });
 
+<<<<<<< HEAD
 // ── AUTH (brand signup / login) ──
 app.use("/auth", authRoutes);
 
+=======
+>>>>>>> 3721339911efb63a0d3e218bc2bca258a9d1d79a
 // ── IMAGE PREPROCESS (resize/rotate/compress before sending to PixelAPI) ──
 const preprocessImage = async (dataUrl, type) => {
   try {
@@ -154,8 +169,13 @@ const CATEGORY_MAP = {
   ethnic_wear: "upperbody", // no ethnic-specific category in PixelAPI; upperbody fits best
 };
 
+<<<<<<< HEAD
 // ── TRY ON ROUTE ── (requires a logged-in brand)
 app.post("/tryon", requireAuth, async (req, res) => {
+=======
+// ── TRY ON ROUTE ──
+app.post("/tryon", async (req, res) => {
+>>>>>>> 3721339911efb63a0d3e218bc2bca258a9d1d79a
   const start = Date.now();
   try {
     if (!PIXELAPI_KEY) {

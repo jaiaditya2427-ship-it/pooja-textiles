@@ -11,11 +11,17 @@
     "node": ">=18"
   },
   "dependencies": {
+<<<<<<< HEAD
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.2",
+=======
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+>>>>>>> 3721339911efb63a0d3e218bc2bca258a9d1d79a
     "sharp": "^0.33.5"
   }
 }
