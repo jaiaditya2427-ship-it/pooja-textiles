@@ -5,8 +5,11 @@ dist/
 backend/node_modules/
 backend/.env
 <<<<<<< HEAD
+<<<<<<< HEAD
 backend/brands.json
 =======
 >>>>>>> 3721339911efb63a0d3e218bc2bca258a9d1d79a
+=======
+>>>>>>> origin/main
 .DS_Store
 *.log

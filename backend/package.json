@@ -12,6 +12,7 @@
   },
   "dependencies": {
 <<<<<<< HEAD
+<<<<<<< HEAD
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -22,6 +23,11 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
 >>>>>>> 3721339911efb63a0d3e218bc2bca258a9d1d79a
+=======
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+>>>>>>> origin/main
     "sharp": "^0.33.5"
   }
 }
