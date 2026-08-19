@@ -1,5 +1,6 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 {
   "name": "Fashion Try-on AI",
   "short_name": "TryOn",
@@ -64,3 +65,25 @@
   ]
 }
 >>>>>>> origin/main
+=======
+{
+  "name": "Fashion Try-on AI",
+  "short_name": "TryOn",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D0D0D",
+  "theme_color": "#D4A843",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+>>>>>>> 3721339911efb63a0d3e218bc2bca258a9d1d79a
