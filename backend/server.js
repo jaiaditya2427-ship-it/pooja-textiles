@@ -1,17 +1,24 @@
+// This must be the very first import — it loads .env into process.env before
+// anything else (like auth.js) runs and reads process.env.JWT_SECRET. With
+// plain `import dotenv from "dotenv"; dotenv.config();` further down, other
+// imported files still got evaluated first and read JWT_SECRET as undefined.
 import "dotenv/config";
 
 import express from "express";
 import cors from "cors";
 import sharp from "sharp";
 import authRoutes, { requireAuth } from "./auth.js";
+import adminRoutes from "./admin.js";
+import { initDb } from "./db.js";
+import { incrementUsage } from "./store.js";
 
 const app = express();
 
 app.use(
   cors({
     origin: "*",
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
@@ -34,6 +41,7 @@ app.get("/", (req, res) => {
 
 // ── AUTH (brand signup / login) ──
 app.use("/auth", authRoutes);
+app.use("/admin", adminRoutes);
 
 // ── IMAGE PREPROCESS (resize/rotate/compress before sending to PixelAPI) ──
 const preprocessImage = async (dataUrl, type) => {
@@ -61,7 +69,7 @@ const preprocessImage = async (dataUrl, type) => {
 
 const toRawBase64 = (img) => img.split(",")[1] || img;
 
-// Human-readable garment description per type
+// Human-readable garment description per type, used to prompt the fabric->garment step
 const GARMENT_DESCRIPTIONS = {
   "T-Shirt": "a men's plain crew-neck t-shirt",
   "Shirt": "a men's collared button-up shirt",
@@ -74,6 +82,9 @@ const GARMENT_DESCRIPTIONS = {
 };
 
 // ── STEP 1: turn a flat fabric/texture photo into a realistic garment product photo ──
+// Uses PixelAPI's instruction-based image editing endpoint (POST /v1/image/edit).
+// This is the step that was missing — sending raw fabric straight to try-on gives
+// bad results because there's no real garment shape, folds, or shading in it.
 const fetchAsDataUrl = async (url) => {
   const imgRes = await fetch(url);
   const arrBuf = await imgRes.arrayBuffer();
@@ -103,20 +114,16 @@ const generateGarmentFromFabric = async (fabricDataUrl, garmentLabel) => {
   console.log("image/edit raw response:", JSON.stringify(submitData));
 
   if (!submit.ok) {
-    throw new Error(
-      submitData.detail ||
-        submitData.error ||
-        "Fabric-to-garment step failed to start"
-    );
+    throw new Error(submitData.detail || submitData.error || "Fabric-to-garment step failed to start");
   }
 
+  // Case 1: PixelAPI returned the result immediately (no polling needed)
   if (submitData.output_url) {
     return fetchAsDataUrl(submitData.output_url);
   }
 
-  const jobId =
-    submitData.job_id || submitData.generation_id || submitData.id;
-
+  // Case 2: it's a queued job — poll using whatever id field it actually gave us
+  const jobId = submitData.job_id || submitData.generation_id || submitData.id;
   if (!jobId) {
     throw new Error(
       "PixelAPI /v1/image/edit returned no output_url and no job id — check logs above for raw response"
@@ -128,120 +135,88 @@ const generateGarmentFromFabric = async (fabricDataUrl, garmentLabel) => {
     await new Promise((r) => setTimeout(r, 3000));
     waited += 3000;
 
-    const poll = await fetch(
-      `https://api.pixelapi.dev/v1/image/edit/${jobId}`,
-      {
-        headers: PIXELAPI_HEADERS_BASE,
-      }
-    );
-
+    const poll = await fetch(`https://api.pixelapi.dev/v1/image/edit/${jobId}`, {
+      headers: PIXELAPI_HEADERS_BASE,
+    });
     const result = await poll.json();
     console.log("garment-gen poll response:", JSON.stringify(result));
 
     if (result.status === "completed" || result.output_url) {
       return fetchAsDataUrl(result.output_url);
     }
-
-    if (
-      result.status === "failed" ||
-      result.status === "blocked"
-    ) {
-      throw new Error(
-        `Fabric-to-garment generation ${result.status}`
-      );
+    if (result.status === "failed" || result.status === "blocked") {
+      throw new Error(`Fabric-to-garment generation ${result.status}`);
     }
   }
 
   throw new Error("Fabric-to-garment generation timed out");
 };
 
-// Frontend already tags each garment with a correct semantic category
+// Frontend already tags each garment with a correct semantic category —
+// map that to what PixelAPI's try-on endpoint actually accepts:
+// upperbody | lowerbody | dress
 const CATEGORY_MAP = {
   upper_body: "upperbody",
   lower_body: "lowerbody",
   dresses: "dress",
-  ethnic_wear: "upperbody",
+  ethnic_wear: "upperbody", // no ethnic-specific category in PixelAPI; upperbody fits best
 };
 
 // ── TRY ON ROUTE ── (requires a logged-in brand)
 app.post("/tryon", requireAuth, async (req, res) => {
   const start = Date.now();
-
   try {
     if (!PIXELAPI_KEY) {
-      return res
-        .status(500)
-        .json({ success: false, error: "PIXELAPI key missing" });
+      return res.status(500).json({ success: false, error: "PIXELAPI key missing" });
     }
 
     const { personImg, clothImg, garment } = req.body;
 
     if (!personImg || !clothImg) {
-      return res
-        .status(400)
-        .json({ success: false, error: "Images missing" });
+      return res.status(400).json({ success: false, error: "Images missing" });
     }
 
     console.log("Step 1: fabric → realistic garment photo");
-
-    const realGarmentImg = await generateGarmentFromFabric(
-      clothImg,
-      garment?.label
-    );
+    const realGarmentImg = await generateGarmentFromFabric(clothImg, garment?.label);
 
     console.log("Step 2: preprocessing images");
-
     const [personProcessed, clothProcessed] = await Promise.all([
       preprocessImage(personImg, "person"),
       preprocessImage(realGarmentImg, "garment"),
     ]);
 
-    const category =
-      CATEGORY_MAP[garment?.category] || "upperbody";
-
+    const category = CATEGORY_MAP[garment?.category] || "upperbody";
     console.log("PixelAPI category:", category);
 
     console.log("Step 3: submitting try-on job");
-
-    const submit = await fetch(
-      "https://api.pixelapi.dev/v1/virtual-tryon",
-      {
-        method: "POST",
-        headers: {
-          ...PIXELAPI_HEADERS_BASE,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          person_image: toRawBase64(personProcessed),
-          garment_image: toRawBase64(clothProcessed),
-          category,
-        }),
-      }
-    );
+    const submit = await fetch("https://api.pixelapi.dev/v1/virtual-tryon", {
+      method: "POST",
+      headers: {
+        ...PIXELAPI_HEADERS_BASE,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        person_image: toRawBase64(personProcessed),
+        garment_image: toRawBase64(clothProcessed),
+        category,
+      }),
+    });
 
     const data = await submit.json();
-
     if (!submit.ok) {
-      return res.status(400).json({
-        success: false,
-        error: data.error || "PixelAPI failed",
-      });
+      return res.status(400).json({ success: false, error: data.error || "PixelAPI failed" });
     }
 
     let output = null;
     let waited = 0;
-
     while (waited < 600000) {
       await new Promise((r) => setTimeout(r, 3000));
       waited += 3000;
 
       const poll = await fetch(
         `https://api.pixelapi.dev/v1/virtual-tryon/jobs/${data.job_id}`,
-        {
-          headers: PIXELAPI_HEADERS_BASE,
-        }
+        { headers: PIXELAPI_HEADERS_BASE }
       );
-
       const result = await poll.json();
       console.log("tryon status:", result.status);
 
@@ -249,38 +224,37 @@ app.post("/tryon", requireAuth, async (req, res) => {
         output = result.result_image_b64;
         break;
       }
-
       if (result.status === "failed") {
         throw new Error("AI generation failed");
       }
     }
 
     if (!output) {
-      return res
-        .status(408)
-        .json({ success: false, error: "Timeout" });
+      return res.status(408).json({ success: false, error: "Timeout" });
     }
 
-    res.json({
-      success: true,
-      image: `data:image/png;base64,${output}`,
-    });
-
+    res.json({ success: true, image: `data:image/png;base64,${output}` });
     console.log("DONE", Date.now() - start, "ms");
+    incrementUsage(req.brand.id).catch((e) => console.error("usage tracking failed:", e.message));
   } catch (e) {
     console.log(e);
-
-    res.status(500).json({
-      success: false,
-      error: e.message,
-    });
+    res.status(500).json({ success: false, error: e.message });
   }
 });
 
 app.get("/ping", (req, res) => res.json({ alive: true }));
 
 const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`✅ Backend running ${PORT}`);
-});
+initDb()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`✅ Backend running ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("❌ Failed to set up database:", err.message);
+    // Still start the server so local/JSON-fallback testing keeps working.
+    app.listen(PORT, () => {
+      console.log(`✅ Backend running ${PORT} (database setup failed — check DATABASE_URL)`);
+    });
+  });

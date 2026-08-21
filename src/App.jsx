@@ -162,28 +162,127 @@ button:focus-visible,.uzone:focus-visible,.gc:focus-visible{outline:2px solid va
 .wbtn:hover{box-shadow:0 0 40px rgba(212,168,67,.5)}
 .wengine{margin-top:1.4rem;font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(212,168,67,.55);animation:fadeUp .8s ease 1s both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmerSweep{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes floatSlow{0%,100%{transform:translateY(0) translateX(0)}50%{transform:translateY(-14px) translateX(6px)}}
+@keyframes floatSlow2{0%,100%{transform:translateY(0) translateX(0)}50%{transform:translateY(10px) translateX(-8px)}}
+@keyframes glowPulse{0%,100%{opacity:.35}50%{opacity:.75}}
+@keyframes skeletonPulse{0%,100%{opacity:.4}50%{opacity:.8}}
+@keyframes popIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
 
 /* AUTH */
 .auth{position:fixed;inset:0;z-index:300;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;overflow-y:auto}
-.auth-badge{font-size:.6rem;letter-spacing:.4em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(212,168,67,.3);padding:.3rem .9rem;margin-bottom:1.6rem;animation:fadeUp .8s ease .1s both}
-.auth-title{font-family:'Playfair Display',serif;font-size:clamp(2rem,8vw,2.6rem);font-weight:700;color:var(--cream);line-height:1.1;text-align:center;animation:fadeUp .8s ease .2s both}
-.auth-title em{color:var(--gold);font-style:normal}
+.auth::before,.auth::after{content:"";position:absolute;border-radius:50%;filter:blur(60px);pointer-events:none;z-index:0}
+.auth::before{width:280px;height:280px;background:radial-gradient(circle,rgba(212,168,67,.18),transparent 70%);top:-60px;left:-60px;animation:floatSlow 9s ease-in-out infinite}
+.auth::after{width:320px;height:320px;background:radial-gradient(circle,rgba(212,168,67,.12),transparent 70%);bottom:-80px;right:-60px;animation:floatSlow2 11s ease-in-out infinite}
+.auth>*{position:relative;z-index:1}
+.auth-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.auth-bg::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 55% at 50% 30%,rgba(212,168,67,.14) 0%,transparent 70%)}
+.auth-bg::after{content:'';position:absolute;width:600px;height:600px;border-radius:50%;border:1px solid rgba(212,168,67,.05);top:20%;left:50%;transform:translate(-50%,-50%);animation:pulseRing 5s ease-in-out infinite}
+.auth-panel{position:relative;z-index:1;width:100%;display:flex;flex-direction:column;align-items:center;background:rgba(20,18,14,.55);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(212,168,67,.15);border-radius:20px;padding:2.6rem 2rem;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.auth-badge{font-size:.6rem;letter-spacing:.4em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(212,168,67,.3);padding:.3rem .9rem;margin-bottom:1.6rem;animation:fadeUp .8s ease .1s both;position:relative;box-shadow:0 0 20px rgba(212,168,67,.15)}
+.auth-title{font-family:'Playfair Display',serif;font-size:clamp(2rem,8vw,2.6rem);font-weight:700;line-height:1.1;text-align:center;animation:fadeUp .8s ease .2s both;background:linear-gradient(100deg,var(--cream) 30%,var(--gold) 45%,#fff8e0 50%,var(--gold) 55%,var(--cream) 70%);background-size:250% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:fadeUp .8s ease .2s both,shimmerText 6s linear infinite}
+@keyframes shimmerText{0%{background-position:0% 50%}100%{background-position:250% 50%}}
+.auth-title em{font-style:normal}
 .auth-sub{font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-top:.6rem;text-align:center;animation:fadeUp .8s ease .3s both}
-.auth-tabs{display:flex;gap:0;margin-top:2rem;border:1px solid var(--border);animation:fadeUp .8s ease .35s both}
+.auth-tabs{display:flex;gap:0;margin-top:2rem;border:1px solid var(--border);border-radius:10px;overflow:hidden;animation:fadeUp .8s ease .35s both}
 .auth-tab{flex:1;padding:.7rem 1.4rem;background:transparent;border:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:.68rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;transition:all .25s}
 .auth-tab.on{background:var(--gold);color:#000}
 .auth-form{width:100%;max-width:340px;margin-top:1.6rem;display:flex;flex-direction:column;gap:.85rem;animation:fadeUp .8s ease .4s both}
-.auth-field{display:flex;flex-direction:column;gap:.4rem}
+.auth-field{display:flex;flex-direction:column;gap:.4rem;position:relative}
 .auth-label{font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
-.auth-input{background:var(--surface);border:1px solid var(--border);color:var(--cream);padding:.85rem 1rem;font-family:'DM Sans',sans-serif;font-size:.9rem;border-radius:var(--r);transition:border-color .25s}
-.auth-input:focus{outline:none;border-color:var(--gold)}
+.auth-input{background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--cream);padding:.85rem 1rem;font-family:'DM Sans',sans-serif;font-size:.9rem;border-radius:10px;transition:all .25s}
+.auth-input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,168,67,.15);background:rgba(255,255,255,.05)}
 .auth-input::placeholder{color:#555}
 .auth-err{font-size:.72rem;color:var(--red);background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);padding:.6rem .8rem;border-radius:var(--r);animation:fadeUp .3s ease}
-.auth-submit{margin-top:.4rem;display:flex;align-items:center;justify-content:center;gap:.7rem;padding:1rem;background:var(--gold);color:#000;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;border:none;border-radius:var(--r);cursor:pointer;transition:all .3s}
-.auth-submit:hover{box-shadow:0 0 40px rgba(212,168,67,.5)}
-.auth-submit:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+.auth-submit{margin-top:.4rem;display:flex;align-items:center;justify-content:center;gap:.7rem;padding:1rem;background:var(--gold);color:#000;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;border:none;border-radius:10px;cursor:pointer;transition:all .3s;position:relative;overflow:hidden}
+.auth-submit::after{content:'';position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%);transform:translateX(-100%);transition:transform .6s ease}
+.auth-submit:hover::after{transform:translateX(100%)}
+.auth-submit:hover{box-shadow:0 0 40px rgba(212,168,67,.5);transform:translateY(-1px)}
+.auth-submit:disabled{opacity:.5;cursor:not-allowed;box-shadow:none;transform:none}
 .auth-switch{margin-top:1.4rem;font-size:.72rem;color:var(--muted);text-align:center;animation:fadeUp .8s ease .45s both}
 .auth-switch button{background:none;border:none;color:var(--gold);font-size:.72rem;font-weight:600;cursor:pointer;padding:0 .2rem}
+
+/* AMBIENT BACKGROUND (auth + admin login) */
+@keyframes orbFloat1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,-40px) scale(1.15)}}
+@keyframes orbFloat2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-35px,30px) scale(1.1)}}
+@keyframes orbFloat3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(20px,35px) scale(.9)}}
+.bg-orbs{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.bg-orb{position:absolute;border-radius:50%;filter:blur(70px);opacity:.35}
+.bg-orb.o1{width:340px;height:340px;background:radial-gradient(circle,var(--gold),transparent 70%);top:-8%;left:-6%;animation:orbFloat1 14s ease-in-out infinite}
+.bg-orb.o2{width:280px;height:280px;background:radial-gradient(circle,#7a5c1a,transparent 70%);bottom:-10%;right:-8%;animation:orbFloat2 17s ease-in-out infinite}
+.bg-orb.o3{width:220px;height:220px;background:radial-gradient(circle,var(--gold),transparent 70%);top:45%;left:70%;animation:orbFloat3 20s ease-in-out infinite;opacity:.18}
+.auth>*{position:relative;z-index:1}
+
+/* Password visibility toggle */
+.pw-wrap{position:relative}
+.pw-wrap .auth-input{padding-right:2.6rem}
+.pw-eye{position:absolute;right:.7rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:.3rem;line-height:1;transition:color .2s}
+.pw-eye:hover{color:var(--gold)}
+
+/* Button shine sweep on hover */
+.auth-submit,.admodal-confirm{position:relative;overflow:hidden}
+.auth-submit::before,.admodal-confirm::before{content:"";position:absolute;top:0;left:-120%;width:60%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-20deg);transition:left .6s ease}
+.auth-submit:hover::before,.admodal-confirm:hover::before{left:130%}
+
+/* Trust badges row on auth screen */
+.trust-row{display:flex;gap:1.4rem;margin-top:1.8rem;flex-wrap:wrap;justify-content:center;animation:fadeUp .8s ease .5s both}
+.trust-item{display:flex;align-items:center;gap:.4rem;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.trust-item span.ic{font-size:.85rem}
+
+/* ADMIN DASHBOARD */
+.adm-wrap{max-width:960px;margin:0 auto;padding:2.4rem 1.4rem 4rem}
+.adm-top{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem;margin-bottom:2rem}
+.adm-eyebrow{font-size:.6rem;letter-spacing:.35em;text-transform:uppercase;color:var(--gold);margin-bottom:.5rem}
+.adm-title{font-family:'Playfair Display',serif;font-size:clamp(1.6rem,5vw,2.2rem);color:var(--cream);font-weight:700}
+.adm-logout{background:transparent;border:1px solid var(--border);color:var(--muted);padding:.55rem 1.1rem;border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;transition:all .25s}
+.adm-logout:hover{border-color:var(--gold);color:var(--gold)}
+
+.adm-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.9rem;margin-bottom:2rem}
+.adm-stat{background:linear-gradient(160deg,rgba(212,168,67,.08),transparent);border:1px solid var(--border);border-radius:var(--r);padding:1.2rem 1.3rem;transition:transform .25s,border-color .25s}
+.adm-stat:hover{transform:translateY(-3px);border-color:rgba(212,168,67,.4)}
+.adm-stat-num{font-family:'Playfair Display',serif;font-size:2rem;color:var(--gold);line-height:1}
+.adm-stat-lbl{font-size:.62rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-top:.5rem}
+
+.adm-search{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--cream);padding:.85rem 1.1rem;font-family:'DM Sans',sans-serif;font-size:.85rem;border-radius:var(--r);margin-bottom:1.4rem;transition:border-color .25s}
+.adm-search:focus{outline:none;border-color:var(--gold)}
+.adm-search::placeholder{color:#555}
+
+.adm-toolbar{display:flex;justify-content:space-between;align-items:center;gap:.8rem;flex-wrap:wrap;margin-bottom:1.1rem}
+.adm-sortbtns{display:flex;gap:.4rem;flex-wrap:wrap}
+.adm-sortbtn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:.4rem .8rem;border-radius:20px;font-family:'DM Sans',sans-serif;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.adm-sortbtn.on{border-color:var(--gold);color:var(--gold);background:rgba(212,168,67,.1)}
+.adm-export{background:transparent;border:1px solid rgba(212,168,67,.35);color:var(--gold);padding:.4rem .9rem;border-radius:20px;font-family:'DM Sans',sans-serif;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.adm-export:hover{background:rgba(212,168,67,.12)}
+.adm-list{display:flex;flex-direction:column;gap:.7rem}
+.adm-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem 1.3rem;display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;transition:border-color .25s,transform .25s,box-shadow .25s}
+.adm-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.adm-card:hover{border-color:rgba(212,168,67,.35)}
+.adm-card-left{display:flex;align-items:center;gap:.9rem;min-width:0}
+.adm-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(145deg,var(--gold),#8a6d1f);color:#000;font-family:'Playfair Display',serif;font-weight:700;font-size:1.1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
+.adm-avatar img{width:100%;height:100%;object-fit:cover}
+.adm-info{min-width:0}
+.adm-name{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adm-meta{font-size:.7rem;color:var(--muted);margin-top:.2rem;display:flex;gap:.7rem;flex-wrap:wrap}
+.adm-badge{background:rgba(212,168,67,.12);color:var(--gold);border:1px solid rgba(212,168,67,.25);border-radius:20px;padding:.15rem .6rem;font-size:.62rem;letter-spacing:.05em}
+.adm-actions{display:flex;gap:.5rem;flex-wrap:wrap}
+.adm-abtn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:.5rem .85rem;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.adm-abtn:hover{border-color:var(--gold);color:var(--gold)}
+.adm-abtn.danger:hover{border-color:rgba(239,68,68,.5);color:var(--red)}
+.adm-empty{text-align:center;color:var(--muted);font-size:.85rem;padding:3rem 1rem;border:1px dashed var(--border);border-radius:var(--r)}
+.adm-skel{height:76px;border-radius:var(--r);background:linear-gradient(90deg,var(--surface) 25%,rgba(255,255,255,.06) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmerSweep 1.6s ease-in-out infinite,skeletonPulse 1.6s ease-in-out infinite}
+
+.admodal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:400;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+.admodal{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:1.8rem;width:100%;max-width:380px;animation:fadeUp .3s ease}
+.admodal-title{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--cream);margin-bottom:.4rem}
+.admodal-sub{font-size:.75rem;color:var(--muted);margin-bottom:1.2rem;line-height:1.5}
+.admodal-actions{display:flex;gap:.6rem;margin-top:1.2rem}
+.admodal-actions button{flex:1;padding:.75rem;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.admodal-cancel{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.admodal-cancel:hover{color:var(--cream);border-color:rgba(255,255,255,.2)}
+.admodal-confirm{background:var(--gold);border:none;color:#000;font-weight:600}
+.admodal-confirm:hover{box-shadow:0 0 30px rgba(212,168,67,.5)}
+.admodal-confirm.danger{background:var(--red);color:#fff}
+.admodal-confirm.danger:hover{box-shadow:0 0 30px rgba(239,68,68,.4)}
 
 /* HEADER */
 .hdr{padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;background:rgba(13,13,13,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
@@ -502,6 +601,26 @@ const GalleryModal = ({ looks, onClose, onSelect }) => (
   </div>
 );
 
+// Small animated number — counts up from 0 to `value` whenever value changes.
+const CountUp = ({ value }) => {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    let frame;
+    const start = performance.now();
+    const from = 0;
+    const duration = 700;
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(Math.round(from + (value - from) * eased));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [value]);
+  return <>{display}</>;
+};
+
 // ── Main App ──────────────────────────────────────────────────────────────────
 export default function App() {
   const initialAuth = loadAuth();
@@ -514,6 +633,23 @@ export default function App() {
   const [authErr,   setAuthErr]   = useState("");
   const [authBusy,  setAuthBusy]  = useState(false);
   const [wExit,     setWExit]     = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false); // account sheet (edit profile / logout)
+  const [editName,  setEditName]  = useState("");
+  const [editLogo,  setEditLogo]  = useState("");
+  const [editBusy,  setEditBusy]  = useState(false);
+  const [editErr,   setEditErr]   = useState("");
+  const [adminOpen, setAdminOpen] = useState(false); // whole-screen admin panel
+  const [adminToken, setAdminToken] = useState(null);
+  const [adminPass, setAdminPass] = useState("");
+  const [adminErr,  setAdminErr]  = useState("");
+  const [adminBusy, setAdminBusy] = useState(false);
+  const [adminBrands, setAdminBrands] = useState([]);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminSearch, setAdminSearch] = useState("");
+  const [adminSort, setAdminSort] = useState({ key: "joined", dir: "desc" });
+  const [showAuthPass, setShowAuthPass] = useState(false);
+  const [showAdminPass, setShowAdminPass] = useState(false);
+  const [adminModal, setAdminModal] = useState(null); // { type, brand, value, err, busy }
   const [personImg, setPersonImg] = useState(null);
   const [clothImg,  setClothImg]  = useState(null);
   const [garment,   setGarment]   = useState(GARMENT_TYPES[0]);
@@ -626,9 +762,147 @@ export default function App() {
     setScreen("auth");
     setAuthMode("login");
     setAuthPhone(""); setAuthPass(""); setAuthName("");
+    setAccountOpen(false);
   };
 
-  // ── Upload handling (tap or drag & drop) ──
+  // ── Edit Profile (brand name / logo) ──
+  const openAccountSheet = () => {
+    click();
+    setEditName(auth?.brand?.name || "");
+    setEditLogo(auth?.brand?.logo || "");
+    setEditErr("");
+    setAccountOpen(true);
+  };
+
+  const saveProfile = async (e) => {
+    e.preventDefault();
+    setEditErr("");
+    if (!editName.trim()) { setEditErr("Brand name can't be empty"); return; }
+    setEditBusy(true);
+    try {
+      const res = await fetch(`${BACKEND}/auth/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({ name: editName, logo: editLogo }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not save changes");
+      const nextAuth = { ...auth, brand: data.brand };
+      setAuth(nextAuth);
+      persistAuth(nextAuth);
+      AudioEngine.play("success"); haptic("success");
+      showToast("✓ Profile updated");
+      setAccountOpen(false);
+    } catch (err) {
+      setEditErr(getFriendlyError(err.message));
+    } finally {
+      setEditBusy(false);
+    }
+  };
+
+  // ── Admin panel ──
+  const handleAdminLogin = async (e) => {
+    e.preventDefault();
+    setAdminErr("");
+    setAdminBusy(true);
+    try {
+      const res = await fetch(`${BACKEND}/admin/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: adminPass }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Login failed");
+      setAdminToken(data.token);
+      await loadAdminBrands(data.token);
+    } catch (err) {
+      setAdminErr(getFriendlyError(err.message));
+    } finally {
+      setAdminBusy(false);
+    }
+  };
+
+  const loadAdminBrands = async (token) => {
+    setAdminLoading(true);
+    try {
+      const res = await fetch(`${BACKEND}/admin/brands`, {
+        headers: { Authorization: `Bearer ${token || adminToken}` },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not load brands");
+      setAdminBrands(data.brands);
+    } catch (err) {
+      setAdminErr(getFriendlyError(err.message));
+    } finally {
+      setAdminLoading(false);
+    }
+  };
+
+  // Opens the custom modal for rename / reset-password / delete instead of ugly native popups.
+  const openAdminModal = (type, brand) => {
+    click();
+    setAdminModal({ type, brand, value: type === "rename" ? brand.name : "", err: "", busy: false });
+  };
+  const closeAdminModal = () => setAdminModal(null);
+
+  const submitAdminModal = async () => {
+    if (!adminModal) return;
+    const { type, brand, value } = adminModal;
+    if (type === "rename" && (!value.trim() || value.trim() === brand.name)) {
+      setAdminModal((m) => ({ ...m, err: "Enter a different name" }));
+      return;
+    }
+    if (type === "reset" && (!value || value.length < 6)) {
+      setAdminModal((m) => ({ ...m, err: "Password must be at least 6 characters" }));
+      return;
+    }
+    setAdminModal((m) => ({ ...m, busy: true, err: "" }));
+    try {
+      if (type === "rename") {
+        const res = await fetch(`${BACKEND}/admin/brands/${brand.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+          body: JSON.stringify({ name: value }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || "Rename failed");
+        showToast("✓ Brand renamed");
+      } else if (type === "reset") {
+        const res = await fetch(`${BACKEND}/admin/brands/${brand.id}/reset-password`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminToken}` },
+          body: JSON.stringify({ newPassword: value }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || "Reset failed");
+        showToast("✓ Password reset");
+      } else if (type === "delete") {
+        const res = await fetch(`${BACKEND}/admin/brands/${brand.id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${adminToken}` },
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || "Delete failed");
+        showToast("✓ Brand deleted");
+      }
+      await loadAdminBrands();
+      setAdminModal(null);
+    } catch (err) {
+      setAdminModal((m) => ({ ...m, busy: false, err: getFriendlyError(err.message) }));
+    }
+  };
+
+  const handleAdminLogout = () => {
+    click();
+    setAdminToken(null);
+    setAdminBrands([]);
+    setAdminPass("");
+    setAdminSearch("");
+  };
+
   const processUpload = async (file, who) => {
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) { showToast("Please use images below 10MB"); return; }
@@ -734,6 +1008,14 @@ export default function App() {
       // Save to persisted history
       setSavedLooks(prev => [{image:data.image, garment:garment.short||garment.label, ts:Date.now()}, ...prev].slice(0,12));
 
+      // Reflect the new try-on count immediately (backend increments it server-side too)
+      setAuth(prev => {
+        if (!prev) return prev;
+        const next = { ...prev, brand: { ...prev.brand, usageCount: (prev.brand.usageCount || 0) + 1 } };
+        persistAuth(next);
+        return next;
+      });
+
       setTimeout(()=>{
         setResult(data.image);
         setScreen("result");
@@ -800,6 +1082,221 @@ export default function App() {
   const step = !personImg ? 1 : !clothImg ? 2 : 3;
   const showBack = screen !== "welcome";
 
+  const isAdminRoute = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("admin");
+
+  if (isAdminRoute) {
+    const q = adminSearch.trim().toLowerCase();
+    let filteredBrands = q
+      ? adminBrands.filter((b) => b.name.toLowerCase().includes(q) || b.phone.includes(q))
+      : adminBrands;
+    filteredBrands = [...filteredBrands].sort((a, b) => {
+      const dir = adminSort.dir === "asc" ? 1 : -1;
+      if (adminSort.key === "name") return a.name.localeCompare(b.name) * dir;
+      if (adminSort.key === "usage") return ((a.usageCount||0) - (b.usageCount||0)) * dir;
+      return ((a.createdAt||0) - (b.createdAt||0)) * dir;
+    });
+    const totalTryOns = adminBrands.reduce((sum, b) => sum + (b.usageCount || 0), 0);
+    const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
+    const newToday = adminBrands.filter((b) => b.createdAt && b.createdAt >= startOfToday.getTime()).length;
+
+    const setSortKey = (key) => {
+      click();
+      setAdminSort((s) => s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "desc" });
+    };
+
+    const exportCsv = () => {
+      click();
+      const rows = [["Brand Name","Phone","Joined","Try-Ons"]];
+      adminBrands.forEach((b) => rows.push([
+        b.name, b.phone, b.createdAt ? new Date(b.createdAt).toLocaleDateString() : "", b.usageCount || 0
+      ]));
+      const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "brand-accounts.csv"; a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    return (
+      <>
+        <style>{S}</style>
+        <div className="app">
+          {!adminToken ? (
+            <div className="auth">
+              <div className="bg-orbs"><div className="bg-orb o1"/><div className="bg-orb o2"/><div className="bg-orb o3"/></div>
+              <div className="auth-badge">✦ Owner Access</div>
+              <div className="auth-title">Admin<em> Panel</em></div>
+              <div className="auth-sub">Log in to manage all brand accounts</div>
+              <form className="auth-form" onSubmit={handleAdminLogin}>
+                <div className="auth-field">
+                  <label className="auth-label" htmlFor="admin-pass">Admin Password</label>
+                  <div className="pw-wrap">
+                    <input
+                      id="admin-pass"
+                      className="auth-input"
+                      type={showAdminPass ? "text" : "password"}
+                      value={adminPass}
+                      onChange={(e)=>setAdminPass(e.target.value)}
+                      autoFocus
+                    />
+                    <button type="button" className="pw-eye" onClick={()=>setShowAdminPass(v=>!v)} tabIndex={-1} aria-label="Toggle password visibility">
+                      {showAdminPass ? "🙈" : "👁️"}
+                    </button>
+                  </div>
+                </div>
+                {adminErr && <div className="auth-err" role="alert">{adminErr}</div>}
+                <button type="submit" className="auth-submit" disabled={adminBusy}>
+                  {adminBusy ? "Please wait…" : "Log In"}
+                </button>
+              </form>
+            </div>
+          ) : (
+            <div className="adm-wrap">
+              <div className="adm-top">
+                <div>
+                  <div className="adm-eyebrow">✦ Owner Dashboard</div>
+                  <div className="adm-title">All Brand Accounts</div>
+                </div>
+                <button className="adm-logout" onClick={handleAdminLogout}>Log Out</button>
+              </div>
+
+              <div className="adm-stats">
+                <div className="adm-stat">
+                  <div className="adm-stat-num"><CountUp value={adminBrands.length}/></div>
+                  <div className="adm-stat-lbl">Total Brands</div>
+                </div>
+                <div className="adm-stat">
+                  <div className="adm-stat-num"><CountUp value={newToday}/></div>
+                  <div className="adm-stat-lbl">New Today</div>
+                </div>
+                <div className="adm-stat">
+                  <div className="adm-stat-num"><CountUp value={totalTryOns}/></div>
+                  <div className="adm-stat-lbl">Total Try-Ons</div>
+                </div>
+              </div>
+
+              <input
+                className="adm-search"
+                type="text"
+                placeholder="Search by brand name or phone…"
+                value={adminSearch}
+                onChange={(e)=>setAdminSearch(e.target.value)}
+              />
+
+              <div className="adm-toolbar">
+                <div className="adm-sortbtns">
+                  {[["joined","Joined"],["name","Name"],["usage","Try-Ons"]].map(([key,lbl])=>(
+                    <button
+                      key={key}
+                      className={`adm-sortbtn${adminSort.key===key?" on":""}`}
+                      onClick={()=>setSortKey(key)}
+                    >{lbl}{adminSort.key===key ? (adminSort.dir==="asc"?" ↑":" ↓") : ""}</button>
+                  ))}
+                </div>
+                <button className="adm-export" onClick={exportCsv}>⬇ Export CSV</button>
+              </div>
+
+              <div className="adm-list">
+                {adminLoading ? (
+                  <>
+                    <div className="adm-skel" />
+                    <div className="adm-skel" />
+                    <div className="adm-skel" />
+                  </>
+                ) : (
+                  <>
+                    {filteredBrands.map((b)=>(
+                      <div key={b.id} className="adm-card">
+                        <div className="adm-card-left">
+                          <div className="adm-avatar">
+                            {b.logo ? <img src={b.logo} alt="" /> : (b.name?.[0] || "?").toUpperCase()}
+                          </div>
+                          <div className="adm-info">
+                            <div className="adm-name">{b.name}</div>
+                            <div className="adm-meta">
+                              <span>{b.phone}</span>
+                              {b.createdAt && <span>Joined {new Date(b.createdAt).toLocaleDateString()}</span>}
+                              <span className="adm-badge">{b.usageCount || 0} try-ons</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="adm-actions">
+                          <button className="adm-abtn" onClick={()=>openAdminModal("rename", b)}>Rename</button>
+                          <button className="adm-abtn" onClick={()=>openAdminModal("reset", b)}>Reset Password</button>
+                          <button className="adm-abtn danger" onClick={()=>openAdminModal("delete", b)}>Delete</button>
+                        </div>
+                      </div>
+                    ))}
+                    {!filteredBrands.length && (
+                      <div className="adm-empty">
+                        {adminBrands.length ? "No brands match your search." : "No brands have signed up yet."}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ADMIN ACTION MODAL */}
+          {adminModal && (
+            <div className="admodal-bg" onClick={closeAdminModal}>
+              <div className="admodal" onClick={(e)=>e.stopPropagation()}>
+                {adminModal.type === "rename" && (
+                  <>
+                    <div className="admodal-title">Rename Brand</div>
+                    <div className="admodal-sub">Update the display name for "{adminModal.brand.name}".</div>
+                    <input
+                      className="auth-input"
+                      style={{width:"100%"}}
+                      type="text"
+                      value={adminModal.value}
+                      onChange={(e)=>setAdminModal((m)=>({...m,value:e.target.value,err:""}))}
+                      autoFocus
+                    />
+                  </>
+                )}
+                {adminModal.type === "reset" && (
+                  <>
+                    <div className="admodal-title">Reset Password</div>
+                    <div className="admodal-sub">Set a new password for "{adminModal.brand.name}". Share it with them directly.</div>
+                    <input
+                      className="auth-input"
+                      style={{width:"100%"}}
+                      type="text"
+                      placeholder="New password (min 6 characters)"
+                      value={adminModal.value}
+                      onChange={(e)=>setAdminModal((m)=>({...m,value:e.target.value,err:""}))}
+                      autoFocus
+                    />
+                  </>
+                )}
+                {adminModal.type === "delete" && (
+                  <>
+                    <div className="admodal-title">Delete Brand?</div>
+                    <div className="admodal-sub">This permanently removes "{adminModal.brand.name}" and they will no longer be able to log in. This cannot be undone.</div>
+                  </>
+                )}
+                {adminModal.err && <div className="auth-err" style={{marginTop:".8rem"}}>{adminModal.err}</div>}
+                <div className="admodal-actions">
+                  <button className="admodal-cancel" onClick={closeAdminModal} disabled={adminModal.busy}>Cancel</button>
+                  <button
+                    className={`admodal-confirm${adminModal.type==="delete"?" danger":""}`}
+                    onClick={submitAdminModal}
+                    disabled={adminModal.busy}
+                  >
+                    {adminModal.busy ? "…" : adminModal.type==="delete" ? "Delete" : "Save"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <style>{S}</style>
@@ -813,6 +1310,9 @@ export default function App() {
         {/* AUTH */}
         {screen==="auth" && (
           <div className="auth">
+            <div className="auth-bg"/>
+            <Particles/>
+            <div className="auth-panel">
             <div className="auth-badge">✦ Powered by Idea Infoline</div>
             <div className="auth-title">Fashion<em> Try‑On</em></div>
             <div className="auth-sub">
@@ -887,6 +1387,7 @@ export default function App() {
                 <>Already have an account? <button type="button" onClick={()=>{ click(); setAuthMode("login"); setAuthErr(""); }}>Log in</button></>
               )}
             </div>
+            </div>
           </div>
         )}
 
@@ -946,9 +1447,9 @@ export default function App() {
               <button
                 className="hpill"
                 style={{cursor:"pointer",background:"rgba(212,168,67,.12)"}}
-                onClick={handleLogout}
-                title="Log out"
-              >{auth?.brand?.name || "Log Out"}</button>
+                onClick={openAccountSheet}
+                title="Account"
+              >{auth?.brand?.name || "Account"}</button>
             </header>
 
             {screen==="main" && (
@@ -1230,6 +1731,54 @@ Garment:
                 ))}
               </div>
               <button className="shclose" onClick={()=>{click();setShareOpen(false)}}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {/* ACCOUNT SHEET (edit profile / logout) */}
+        {accountOpen && (
+          <div className="sheetbg" onClick={()=>setAccountOpen(false)}>
+            <div className="sheet" onClick={e=>e.stopPropagation()}>
+              <div className="shandle"/>
+              <div className="shtitle">Your Brand Account</div>
+              {typeof auth?.brand?.usageCount === "number" && (
+                <div className="adm-badge" style={{display:"inline-block",marginTop:".6rem"}}>
+                  ✦ {auth.brand.usageCount} try-on{auth.brand.usageCount===1?"":"s"} generated
+                </div>
+              )}
+              <form className="auth-form" style={{marginTop:"1rem"}} onSubmit={saveProfile}>
+                <div className="auth-field">
+                  <label className="auth-label" htmlFor="edit-name">Brand Name</label>
+                  <input
+                    id="edit-name"
+                    className="auth-input"
+                    type="text"
+                    value={editName}
+                    onChange={(e)=>setEditName(e.target.value)}
+                  />
+                </div>
+                <div className="auth-field">
+                  <label className="auth-label" htmlFor="edit-logo">Logo Image URL (optional)</label>
+                  <input
+                    id="edit-logo"
+                    className="auth-input"
+                    type="text"
+                    placeholder="https://... link to your logo image"
+                    value={editLogo}
+                    onChange={(e)=>setEditLogo(e.target.value)}
+                  />
+                </div>
+                {editErr && <div className="auth-err" role="alert">{editErr}</div>}
+                <button type="submit" className="auth-submit" disabled={editBusy}>
+                  {editBusy ? "Saving…" : "Save Changes"}
+                </button>
+              </form>
+              <button
+                className="shclose"
+                style={{marginTop:".7rem",borderColor:"rgba(239,68,68,.3)",color:"var(--red)"}}
+                onClick={handleLogout}
+              >Log Out</button>
+              <button className="shclose" style={{marginTop:".5rem"}} onClick={()=>setAccountOpen(false)}>Cancel</button>
             </div>
           </div>
         )}
