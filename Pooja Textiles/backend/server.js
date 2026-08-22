@@ -1,18 +1,25 @@
-import dotenv from "dotenv";
-dotenv.config();
+// This must be the very first import — it loads .env into process.env before
+// anything else (like auth.js) runs and reads process.env.JWT_SECRET. With
+// plain `import dotenv from "dotenv"; dotenv.config();` further down, other
+// imported files still got evaluated first and read JWT_SECRET as undefined.
+import "dotenv/config";
 
 import express from "express";
 import cors from "cors";
 import sharp from "sharp";
 import authRoutes, { requireAuth } from "./auth.js";
+import adminRoutes from "./admin.js";
+import enquiriesRoutes from "./enquiries.js";
+import { initDb } from "./db.js";
+import { incrementUsage } from "./store.js";
 
 const app = express();
 
 app.use(
   cors({
     origin: "*",
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
@@ -35,6 +42,8 @@ app.get("/", (req, res) => {
 
 // ── AUTH (brand signup / login) ──
 app.use("/auth", authRoutes);
+app.use("/admin", adminRoutes);
+app.use("/enquiries", enquiriesRoutes);
 
 // ── IMAGE PREPROCESS (resize/rotate/compress before sending to PixelAPI) ──
 const preprocessImage = async (dataUrl, type) => {
@@ -228,6 +237,7 @@ app.post("/tryon", requireAuth, async (req, res) => {
 
     res.json({ success: true, image: `data:image/png;base64,${output}` });
     console.log("DONE", Date.now() - start, "ms");
+    incrementUsage(req.brand.id).catch((e) => console.error("usage tracking failed:", e.message));
   } catch (e) {
     console.log(e);
     res.status(500).json({ success: false, error: e.message });
@@ -237,6 +247,16 @@ app.post("/tryon", requireAuth, async (req, res) => {
 app.get("/ping", (req, res) => res.json({ alive: true }));
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`✅ Backend running ${PORT}`);
-});
+initDb()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`✅ Backend running ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("❌ Failed to set up database:", err.message);
+    // Still start the server so local/JSON-fallback testing keeps working.
+    app.listen(PORT, () => {
+      console.log(`✅ Backend running ${PORT} (database setup failed — check DATABASE_URL)`);
+    });
+  });
