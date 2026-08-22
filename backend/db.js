@@ -33,5 +33,16 @@ export const initDb = async () => {
   `);
   // Added later — IF NOT EXISTS keeps this safe to re-run on an existing table.
   await pool.query(`ALTER TABLE brands ADD COLUMN IF NOT EXISTS usage_count INTEGER DEFAULT 0;`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS enquiries (
+      id UUID PRIMARY KEY,
+      brand_id UUID NOT NULL REFERENCES brands(id) ON DELETE CASCADE,
+      customer_name TEXT NOT NULL,
+      customer_phone TEXT,
+      note TEXT,
+      created_at BIGINT NOT NULL
+    );
+  `);
   console.log("✅ Connected to Postgres — brands table ready");
 };

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, Component } from "react";
 
 const BACKEND = "https://fashion-tryon-backend1.onrender.com";
 const LOOKS_KEY = "pt_saved_looks_v1";
@@ -128,13 +128,13 @@ const S = `
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;700&family=DM+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0D0D0D; --surface:#161616; --card:#1E1E1E; --border:#2A2A2A;
-  --gold:#D4A843; --gold2:#F0C96A; --cream:#FAF6EF; --muted:#888;
+  --bg:#FAF7F2; --surface:#FFFFFF; --card:#FFFFFF; --border:#E8E1D3;
+  --gold:#B8863B; --gold2:#D4A843; --cream:#2B2620; --muted:#8A7F6D;
   --green:#22C55E; --red:#EF4444;
-  --glass:rgba(255,255,255,0.04); --r:12px;
+  --glass:rgba(0,0,0,0.03); --r:12px;
 }
 html,body{background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-.app{min-height:100vh;max-width:430px;margin:0 auto;position:relative}
+.app{min-height:100vh;max-width:430px;margin:0 auto;position:relative;box-shadow:0 0 60px rgba(0,0,0,.06)}
 button:focus-visible,.uzone:focus-visible,.gc:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
 /* OFFLINE BANNER */
@@ -190,8 +190,8 @@ button:focus-visible,.uzone:focus-visible,.gc:focus-visible{outline:2px solid va
 .auth-form{width:100%;max-width:340px;margin-top:1.6rem;display:flex;flex-direction:column;gap:.85rem;animation:fadeUp .8s ease .4s both}
 .auth-field{display:flex;flex-direction:column;gap:.4rem;position:relative}
 .auth-label{font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
-.auth-input{background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--cream);padding:.85rem 1rem;font-family:'DM Sans',sans-serif;font-size:.9rem;border-radius:10px;transition:all .25s}
-.auth-input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,168,67,.15);background:rgba(255,255,255,.05)}
+.auth-input{background:rgba(0,0,0,.025);border:1px solid var(--border);color:var(--cream);padding:.85rem 1rem;font-family:'DM Sans',sans-serif;font-size:.9rem;border-radius:10px;transition:all .25s}
+.auth-input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,134,59,.15);background:rgba(0,0,0,.035)}
 .auth-input::placeholder{color:#555}
 .auth-err{font-size:.72rem;color:var(--red);background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);padding:.6rem .8rem;border-radius:var(--r);animation:fadeUp .3s ease}
 .auth-submit{margin-top:.4rem;display:flex;align-items:center;justify-content:center;gap:.7rem;padding:1rem;background:var(--gold);color:#000;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;border:none;border-radius:10px;cursor:pointer;transition:all .3s;position:relative;overflow:hidden}
@@ -269,7 +269,7 @@ button:focus-visible,.uzone:focus-visible,.gc:focus-visible{outline:2px solid va
 .adm-abtn:hover{border-color:var(--gold);color:var(--gold)}
 .adm-abtn.danger:hover{border-color:rgba(239,68,68,.5);color:var(--red)}
 .adm-empty{text-align:center;color:var(--muted);font-size:.85rem;padding:3rem 1rem;border:1px dashed var(--border);border-radius:var(--r)}
-.adm-skel{height:76px;border-radius:var(--r);background:linear-gradient(90deg,var(--surface) 25%,rgba(255,255,255,.06) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmerSweep 1.6s ease-in-out infinite,skeletonPulse 1.6s ease-in-out infinite}
+.adm-skel{height:76px;border-radius:var(--r);background:linear-gradient(90deg,var(--surface) 25%,rgba(0,0,0,.05) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmerSweep 1.6s ease-in-out infinite,skeletonPulse 1.6s ease-in-out infinite}
 
 .admodal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:400;display:flex;align-items:center;justify-content:center;padding:1.5rem}
 .admodal{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:1.8rem;width:100%;max-width:380px;animation:fadeUp .3s ease}
@@ -278,11 +278,62 @@ button:focus-visible,.uzone:focus-visible,.gc:focus-visible{outline:2px solid va
 .admodal-actions{display:flex;gap:.6rem;margin-top:1.2rem}
 .admodal-actions button{flex:1;padding:.75rem;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:all .2s}
 .admodal-cancel{background:transparent;border:1px solid var(--border);color:var(--muted)}
-.admodal-cancel:hover{color:var(--cream);border-color:rgba(255,255,255,.2)}
+.admodal-cancel:hover{color:var(--cream);border-color:rgba(0,0,0,.18)}
 .admodal-confirm{background:var(--gold);border:none;color:#000;font-weight:600}
 .admodal-confirm:hover{box-shadow:0 0 30px rgba(212,168,67,.5)}
 .admodal-confirm.danger{background:var(--red);color:#fff}
 .admodal-confirm.danger:hover{box-shadow:0 0 30px rgba(239,68,68,.4)}
+
+/* BOTTOM NAV */
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);border-top:1px solid var(--border);display:flex;z-index:150;padding:.4rem .2rem calc(.4rem + env(safe-area-inset-bottom))}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:.2rem;padding:.5rem 0;background:none;border:none;cursor:pointer;color:var(--muted);transition:color .2s}
+.bnav-item.on{color:var(--gold)}
+.bnav-icon{font-size:1.15rem;line-height:1}
+.bnav-lbl{font-size:.56rem;letter-spacing:.04em;text-transform:uppercase;font-weight:600}
+
+/* PAGE (home/catalog/gallery/enquiries) */
+.page{padding:1.6rem 1.2rem 6.5rem;min-height:100vh;animation:fadeUp .5s ease both}
+.page-eyebrow{font-size:.6rem;letter-spacing:.35em;text-transform:uppercase;color:var(--gold);margin-bottom:.4rem}
+.page-title{font-family:'Playfair Display',serif;font-size:1.7rem;color:var(--cream);font-weight:700;margin-bottom:1.6rem}
+
+.hero{background:linear-gradient(155deg,rgba(184,134,59,.14),rgba(184,134,59,.03));border:1px solid var(--border);border-radius:18px;padding:1.8rem 1.5rem;margin-bottom:1.6rem;position:relative;overflow:hidden}
+.hero-eyebrow{font-size:.6rem;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:.5rem}
+.hero-title{font-family:'Playfair Display',serif;font-size:1.7rem;color:var(--cream);line-height:1.2;margin-bottom:.5rem}
+.hero-sub{font-size:.78rem;color:var(--muted);line-height:1.5;margin-bottom:1.2rem}
+.hero-cta{background:var(--gold);color:#fff;border:none;padding:.85rem 1.4rem;border-radius:10px;font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .25s}
+.hero-cta:hover{box-shadow:0 8px 24px rgba(184,134,59,.35);transform:translateY(-1px)}
+
+.qgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin-bottom:1.8rem}
+.qcard{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1rem .6rem;display:flex;flex-direction:column;align-items:center;gap:.4rem;cursor:pointer;transition:all .2s}
+.qcard:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:0 8px 20px rgba(184,134,59,.12)}
+.qcard-icon{font-size:1.5rem}
+.qcard-lbl{font-size:.64rem;letter-spacing:.03em;text-align:center;color:var(--cream);font-weight:600}
+
+.section-title{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--cream);margin:1.6rem 0 .9rem}
+
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem}
+.cat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.3rem 1rem;text-align:center;cursor:pointer;transition:all .2s}
+.cat-card:hover{border-color:var(--gold);box-shadow:0 8px 20px rgba(184,134,59,.12);transform:translateY(-2px)}
+.cat-icon{font-size:2rem;margin-bottom:.5rem}
+.cat-lbl{font-size:.78rem;font-weight:600;color:var(--cream)}
+
+.gal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem}
+.gal-item{aspect-ratio:1;border-radius:10px;overflow:hidden;cursor:pointer;position:relative;background:var(--surface);border:1px solid var(--border)}
+.gal-item img{width:100%;height:100%;object-fit:cover;transition:transform .3s}
+.gal-item:hover img{transform:scale(1.06)}
+
+.enq-form{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.2rem;margin-bottom:1.6rem;display:flex;flex-direction:column;gap:.7rem}
+.enq-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.1rem;margin-bottom:.6rem}
+.enq-name{font-weight:700;color:var(--cream);font-size:.9rem}
+.enq-meta{font-size:.7rem;color:var(--muted);margin-top:.15rem}
+.enq-note{font-size:.8rem;color:var(--cream);margin-top:.5rem;line-height:1.4}
+.enq-del{background:none;border:none;color:var(--red);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;margin-top:.6rem}
+
+.about-row{display:flex;gap:.8rem;align-items:flex-start;padding:.9rem 0;border-bottom:1px solid var(--border)}
+.about-row:last-child{border-bottom:none}
+.about-icon{font-size:1.1rem}
+.about-lbl{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.2rem}
+.about-val{font-size:.85rem;color:var(--cream)}
 
 /* HEADER */
 .hdr{padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;background:rgba(13,13,13,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
@@ -364,18 +415,18 @@ button:focus-visible,.uzone:focus-visible,.gc:focus-visible{outline:2px solid va
 @keyframes shine{0%{left:-100%}50%{left:150%}100%{left:150%}}
 
 /* LOADING */
-.loadover{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;backdrop-filter:blur(16px)}
-.lring{width:56px;height:56px;border:1.5px solid rgba(212,168,67,.15);border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite}
+.loadover{position:fixed;inset:0;z-index:300;background:rgba(250,247,242,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;backdrop-filter:blur(16px)}
+.lring{width:56px;height:56px;border:1.5px solid rgba(184,134,59,.15);border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .ltext{font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--cream);font-weight:400;letter-spacing:.08em;text-align:center}
-.lsub{font-size:.65rem;letter-spacing:.28em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-top:-.75rem;text-align:center}
-.lbar{width:200px;height:2px;background:rgba(212,168,67,.12);border-radius:1px;overflow:hidden}
+.lsub{font-size:.65rem;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-top:-.75rem;text-align:center}
+.lbar{width:200px;height:2px;background:rgba(184,134,59,.15);border-radius:1px;overflow:hidden}
 .lbar::after{content:'';display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));animation:lp 2s ease-in-out infinite;border-radius:1px}
 @keyframes lp{0%{width:0;margin-left:0}50%{width:60%;margin-left:20%}100%{width:0;margin-left:100%}}
 
 /* PROGRESS PIPELINE */
 .pipeline{display:flex;flex-direction:column;gap:.5rem;margin-top:.5rem}
-.pipe-step{display:flex;align-items:center;gap:.6rem;font-size:.68rem;color:rgba(255,255,255,.3);transition:all .5s}
+.pipe-step{display:flex;align-items:center;gap:.6rem;font-size:.68rem;color:var(--muted);opacity:.5;transition:all .5s}
 .pipe-step.done{color:var(--green)}
 .pipe-step.active{color:var(--cream)}
 .pipe-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
@@ -397,7 +448,7 @@ button:focus-visible,.uzone:focus-visible,.gc:focus-visible{outline:2px solid va
 .ractions{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.9rem}
 .ractions2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.6rem;margin-top:.6rem}
 .abtn{padding:.82rem .4rem;background:transparent;border:1.5px solid var(--border);font-family:'DM Sans',sans-serif;font-size:.62rem;letter-spacing:.15em;text-transform:uppercase;color:var(--cream);cursor:pointer;transition:all .25s;display:flex;align-items:center;justify-content:center;gap:.35rem;border-radius:8px;white-space:nowrap;-webkit-tap-highlight-color:transparent}
-.abtn:hover{background:var(--glass);border-color:rgba(255,255,255,.2)}
+.abtn:hover{background:var(--glass);border-color:rgba(184,134,59,.4)}
 .abtn:active{transform:scale(.96)}
 .abtn.gold{background:var(--gold);color:#000;border-color:var(--gold);font-weight:600}
 .abtn.gold:hover{background:var(--gold2);border-color:var(--gold2)}
@@ -436,10 +487,21 @@ button:focus-visible,.uzone:focus-visible,.gc:focus-visible{outline:2px solid va
 /* SHARE SHEET */
 .sheetbg{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(8px);animation:bgin .3s ease}
 @keyframes bgin{from{opacity:0}to{opacity:1}}
-.sheet{width:100%;max-width:430px;background:#1A1A1A;border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:1.5rem 1.25rem 2.5rem;animation:slideup .35s cubic-bezier(.32,.72,0,1)}
+.sheet{width:100%;max-width:430px;background:var(--surface);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:1.5rem 1.25rem 2.5rem;animation:slideup .35s cubic-bezier(.32,.72,0,1);box-shadow:0 -10px 40px rgba(0,0,0,.1)}
 @keyframes slideup{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .shandle{width:36px;height:3px;background:var(--border);border-radius:2px;margin:0 auto 1.5rem}
 .shtitle{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--cream);margin-bottom:1.25rem;font-weight:400}
+
+/* PROFILE HEADER (account sheet) */
+.prof-hdr{display:flex;flex-direction:column;align-items:center;text-align:center;padding:.5rem 0 1.4rem;border-bottom:1px solid var(--border);margin-bottom:1.4rem}
+.prof-avatar{width:76px;height:76px;border-radius:50%;background:linear-gradient(145deg,var(--gold),#8a6425);color:#fff;font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:.9rem;box-shadow:0 8px 24px rgba(184,134,59,.25)}
+.prof-avatar img{width:100%;height:100%;object-fit:cover}
+.prof-name{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--cream);margin-bottom:.3rem}
+.prof-phone{font-size:.75rem;color:var(--muted)}
+.prof-stats{display:flex;gap:.8rem;margin-top:1rem}
+.prof-stat{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:.7rem 1.1rem;text-align:center}
+.prof-stat-num{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--gold)}
+.prof-stat-lbl{font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:.15rem}
 .shgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:.65rem;margin-bottom:1.25rem}
 .shi{padding:1rem .5rem;border:1.5px solid var(--border);background:var(--card);display:flex;flex-direction:column;align-items:center;gap:.45rem;cursor:pointer;transition:all .25s;border-radius:10px;-webkit-tap-highlight-color:transparent}
 .shi:hover{border-color:var(--gold);background:rgba(212,168,67,.08)}
@@ -447,10 +509,10 @@ button:focus-visible,.uzone:focus-visible,.gc:focus-visible{outline:2px solid va
 .shi-icon{font-size:1.5rem}
 .shi-lbl{font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .shclose{width:100%;padding:.82rem;background:transparent;border:1.5px solid var(--border);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .25s;border-radius:8px}
-.shclose:hover{border-color:rgba(255,255,255,.2);color:var(--cream)}
+.shclose:hover{border-color:rgba(0,0,0,.18);color:var(--cream)}
 
 /* TOAST */
-.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(12px);background:#1E1E1E;color:var(--cream);padding:.65rem 1.4rem;font-size:.68rem;letter-spacing:.15em;text-transform:uppercase;border:1px solid var(--border);opacity:0;transition:all .4s cubic-bezier(.32,.72,0,1);pointer-events:none;white-space:nowrap;z-index:600;border-radius:40px}
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(12px);background:#2B2620;color:#FAF6EF;padding:.65rem 1.4rem;font-size:.68rem;letter-spacing:.15em;text-transform:uppercase;border:1px solid var(--border);opacity:0;transition:all .4s cubic-bezier(.32,.72,0,1);pointer-events:none;white-space:nowrap;z-index:600;border-radius:40px}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* SAVED LOOKS */
@@ -552,27 +614,14 @@ const BeforeAfterSlider = ({ before, after }) => {
 
 // ── Fullscreen zoomable viewer ──────────────────────────────────────────────────
 const FullscreenViewer = ({ src, onClose }) => {
-  const [scale, setScale] = useState(1);
-  const lastTap = useRef(0);
-
-  const toggleZoom = () => setScale(s => s > 1 ? 1 : 2.4);
-
-  const handleTap = () => {
-    const now = Date.now();
-    if (now - lastTap.current < 300) toggleZoom();
-    lastTap.current = now;
-  };
-
   return (
     <div className="fsviewer" onClick={onClose}>
       <img
         src={src}
         alt="Fullscreen try-on result"
-        style={{ transform:`scale(${scale})` }}
-        onClick={(e)=>{ e.stopPropagation(); handleTap(); }}
+        onClick={(e)=>e.stopPropagation()}
       />
       <button className="fsclose" onClick={onClose} aria-label="Close fullscreen viewer">✕</button>
-      <div className="fshint">Double-tap to {scale>1?"reset":"zoom"}</div>
     </div>
   );
 };
@@ -622,7 +671,58 @@ const CountUp = ({ value }) => {
 };
 
 // ── Main App ──────────────────────────────────────────────────────────────────
-export default function App() {
+// Catches any crash that would otherwise show a blank white screen, and
+// displays the real error on-screen instead — so it can just be screenshotted.
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  componentDidCatch(error, info) {
+    console.error("App crashed:", error, info);
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{
+          minHeight: "100vh", display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", padding: "2rem",
+          background: "#FAF7F2", color: "#2B2620", fontFamily: "'DM Sans',sans-serif",
+          textAlign: "center", gap: "1rem",
+        }}>
+          <div style={{ fontSize: "2rem" }}>⚠</div>
+          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: "1.3rem" }}>
+            Something went wrong
+          </div>
+          <div style={{
+            fontSize: ".75rem", color: "#8A7F6D", maxWidth: 340, lineHeight: 1.5,
+            background: "#fff", border: "1px solid #E8E1D3", borderRadius: 10, padding: "1rem",
+            wordBreak: "break-word", textAlign: "left", fontFamily: "monospace",
+          }}>
+            {this.state.error?.message || String(this.state.error)}
+          </div>
+          <button
+            onClick={() => { localStorage.clear(); window.location.reload(); }}
+            style={{
+              background: "#B8863B", color: "#fff", border: "none", padding: ".8rem 1.6rem",
+              borderRadius: 8, fontSize: ".72rem", letterSpacing: ".1em", textTransform: "uppercase",
+              cursor: "pointer", marginTop: ".5rem",
+            }}
+          >Reset & Reload</button>
+          <div style={{ fontSize: ".65rem", color: "#8A7F6D" }}>
+            Screenshot this box and send it if the problem continues.
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function App() {
   const initialAuth = loadAuth();
   const [auth,       setAuth]      = useState(initialAuth); // { token, brand }
   const [screen,    setScreen]    = useState(initialAuth ? "welcome" : "auth");
@@ -653,6 +753,7 @@ export default function App() {
   const [personImg, setPersonImg] = useState(null);
   const [clothImg,  setClothImg]  = useState(null);
   const [garment,   setGarment]   = useState(GARMENT_TYPES[0]);
+  const [wizardStep, setWizardStep] = useState(1); // 1 = choose garment, 2 = upload photos
   const [loading,   setLoading]   = useState(false);
   const [loadMsg,   setLoadMsg]   = useState("Crafting Your Look");
   const [pipeStep,  setPipeStep]  = useState(0);
@@ -665,6 +766,11 @@ export default function App() {
   const [fsOpen,    setFsOpen]    = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [savedLooks,setSavedLooks]= useState(loadSavedLooks);
+  const [enquiries, setEnquiries] = useState([]);
+  const [enqName,   setEnqName]   = useState("");
+  const [enqPhone,  setEnqPhone]  = useState("");
+  const [enqNote,   setEnqNote]   = useState("");
+  const [enqBusy,   setEnqBusy]   = useState(false);
   const [dragTarget, setDragTarget] = useState(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -683,6 +789,11 @@ export default function App() {
   // ── Persist saved looks whenever they change ──
   useEffect(() => { persistSavedLooks(savedLooks); }, [savedLooks]);
 
+  useEffect(() => {
+    if (screen === "enquiries" && auth?.token) loadEnquiries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen]);
+
   // ── Online/offline detection ──
   useEffect(() => {
     const goOnline = () => setIsOffline(false);
@@ -700,19 +811,17 @@ export default function App() {
     AudioEngine.play("back"); haptic("medium");
     if (screen === "result") {
       setScreen("main"); setResult(null);
-    } else if (clothImg) {
-      setClothImg(null);
-    } else if (personImg) {
-      setPersonImg(null);
+    } else if (screen === "main" && wizardStep === 2) {
+      setWizardStep(1);
     } else {
-      setWExit(false); setScreen("welcome");
+      setScreen("home");
     }
   };
 
   const enter = () => {
     click(); AudioEngine.play("welcome"); haptic("medium");
     setWExit(true);
-    setTimeout(()=>setScreen("main"), 900);
+    setTimeout(()=>setScreen("home"), 900);
   };
 
   // ── Auth (brand signup / login) ──
@@ -895,6 +1004,50 @@ export default function App() {
     }
   };
 
+  // ── Enquiries (customer interest log) ──
+  const loadEnquiries = async () => {
+    if (!auth?.token) return;
+    try {
+      const res = await fetch(`${BACKEND}/enquiries`, {
+        headers: { Authorization: `Bearer ${auth.token}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) setEnquiries(data.enquiries);
+    } catch {}
+  };
+
+  const addEnquiry = async (e) => {
+    e.preventDefault();
+    if (!enqName.trim()) return;
+    setEnqBusy(true);
+    try {
+      const res = await fetch(`${BACKEND}/enquiries`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${auth.token}` },
+        body: JSON.stringify({ customerName: enqName, customerPhone: enqPhone, note: enqNote }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not save");
+      setEnqName(""); setEnqPhone(""); setEnqNote("");
+      showToast("✓ Enquiry saved");
+      loadEnquiries();
+    } catch (err) {
+      showToast(getFriendlyError(err.message));
+    } finally {
+      setEnqBusy(false);
+    }
+  };
+
+  const removeEnquiry = async (id) => {
+    try {
+      await fetch(`${BACKEND}/enquiries/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${auth.token}` },
+      });
+      setEnquiries((prev) => prev.filter((e) => e.id !== id));
+    } catch {}
+  };
+
   const handleAdminLogout = () => {
     click();
     setAdminToken(null);
@@ -1061,7 +1214,7 @@ export default function App() {
     setShareOpen(false);
   };
   const copyLink = async () => { click(); await navigator.clipboard?.writeText(result); showToast("✓ Link copied!"); setShareOpen(false); };
-  const reset = () => { click(); AudioEngine.play("whoosh"); setPersonImg(null); setClothImg(null); setResult(null); setError(""); setScreen("main"); };
+  const reset = () => { click(); AudioEngine.play("whoosh"); setPersonImg(null); setClothImg(null); setResult(null); setError(""); setWizardStep(1); setScreen("main"); };
 
   // ── Subtle tilt effect on result image (desktop only) ──
   const onResultMove = (e) => {
@@ -1079,7 +1232,7 @@ export default function App() {
     setScreen("result");
   };
 
-  const step = !personImg ? 1 : !clothImg ? 2 : 3;
+  const wizardStepInfo = !personImg ? "Add customer photo" : !clothImg ? "Add garment photo" : "Ready to generate";
   const showBack = screen !== "welcome";
 
   const isAdminRoute = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("admin");
@@ -1391,6 +1544,143 @@ export default function App() {
           </div>
         )}
 
+        {/* HOME / CATALOG / GALLERY / ENQUIRIES — post-login pages with bottom nav */}
+        {["home","catalog","gallery","enquiries"].includes(screen) && (
+          <>
+            {screen === "home" && (
+              <div className="page">
+                <div className="page-eyebrow">✦ Welcome back</div>
+                <div className="page-title">{auth?.brand?.name || "Your Brand"}</div>
+
+                <div className="hero">
+                  <div className="hero-eyebrow">Virtual Try-On</div>
+                  <div className="hero-title">Show it worn,<br/>not just folded.</div>
+                  <div className="hero-sub">Upload a customer photo and a garment photo — see the fit before they buy.</div>
+                  <button className="hero-cta" onClick={()=>{click();setWizardStep(1);setScreen("main");}}>Start New Try-On →</button>
+                </div>
+
+                <div className="qgrid">
+                  <div className="qcard" onClick={()=>{click();setScreen("catalog");}}>
+                    <div className="qcard-icon">🧵</div>
+                    <div className="qcard-lbl">Catalog</div>
+                  </div>
+                  <div className="qcard" onClick={()=>{click();setScreen("gallery");}}>
+                    <div className="qcard-icon">🖼️</div>
+                    <div className="qcard-lbl">Gallery</div>
+                  </div>
+                  <div className="qcard" onClick={()=>{click();setScreen("enquiries");}}>
+                    <div className="qcard-icon">📋</div>
+                    <div className="qcard-lbl">Enquiries</div>
+                  </div>
+                </div>
+
+                <div className="section-title">About</div>
+                <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14,padding:"1.1rem 1.3rem"}}>
+                  <div className="about-row">
+                    <div className="about-icon">🏷️</div>
+                    <div>
+                      <div className="about-lbl">Brand</div>
+                      <div className="about-val">{auth?.brand?.name}</div>
+                    </div>
+                  </div>
+                  <div className="about-row">
+                    <div className="about-icon">📞</div>
+                    <div>
+                      <div className="about-lbl">Contact</div>
+                      <div className="about-val">{auth?.brand?.phone}</div>
+                    </div>
+                  </div>
+                  <div className="about-row">
+                    <div className="about-icon">✦</div>
+                    <div>
+                      <div className="about-lbl">Try-Ons Generated</div>
+                      <div className="about-val">{auth?.brand?.usageCount || 0}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {screen === "catalog" && (
+              <div className="page">
+                <div className="page-eyebrow">✦ Browse</div>
+                <div className="page-title">Garment Catalog</div>
+                <div className="cat-grid">
+                  {GARMENT_TYPES.map((g,i)=>(
+                    <div key={i} className="cat-card" onClick={()=>{click();setGarment(g);setWizardStep(2);setScreen("main");}}>
+                      <div className="cat-icon">{g.icon}</div>
+                      <div className="cat-lbl">{g.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {screen === "gallery" && (
+              <div className="page">
+                <div className="page-eyebrow">✦ Your Work</div>
+                <div className="page-title">Gallery</div>
+                {savedLooks.length ? (
+                  <div className="gal-grid">
+                    {savedLooks.map((look,i)=>(
+                      <div key={i} className="gal-item" onClick={()=>{click();setResult(look.image);setScreen("result");}}>
+                        <img src={look.image} alt={look.garment}/>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="adm-empty">No try-ons generated yet. Start one from Home ✦</div>
+                )}
+              </div>
+            )}
+
+            {screen === "enquiries" && (
+              <div className="page">
+                <div className="page-eyebrow">✦ Customer Interest</div>
+                <div className="page-title">Enquiries</div>
+
+                <form className="enq-form" onSubmit={addEnquiry}>
+                  <input className="auth-input" placeholder="Customer name" value={enqName} onChange={e=>setEnqName(e.target.value)} />
+                  <input className="auth-input" placeholder="Phone number (optional)" value={enqPhone} onChange={e=>setEnqPhone(e.target.value)} />
+                  <input className="auth-input" placeholder="Note — e.g. interested in silk saree" value={enqNote} onChange={e=>setEnqNote(e.target.value)} />
+                  <button type="submit" className="auth-submit" disabled={enqBusy || !enqName.trim()}>
+                    {enqBusy ? "Saving…" : "+ Add Enquiry"}
+                  </button>
+                </form>
+
+                {enquiries.length ? enquiries.map((e)=>(
+                  <div key={e.id} className="enq-card">
+                    <div className="enq-name">{e.customerName}</div>
+                    {e.customerPhone && <div className="enq-meta">{e.customerPhone}</div>}
+                    {e.note && <div className="enq-note">{e.note}</div>}
+                    <button className="enq-del" onClick={()=>removeEnquiry(e.id)}>Delete</button>
+                  </div>
+                )) : (
+                  <div className="adm-empty">No enquiries logged yet.</div>
+                )}
+              </div>
+            )}
+
+            <div className="bnav">
+              {[
+                {id:"home",icon:"🏠",lbl:"Home"},
+                {id:"catalog",icon:"🧵",lbl:"Catalog"},
+                {id:"gallery",icon:"🖼️",lbl:"Gallery"},
+                {id:"enquiries",icon:"📋",lbl:"Enquiries"},
+              ].map(tab=>(
+                <button key={tab.id} className={`bnav-item${screen===tab.id?" on":""}`} onClick={()=>{click();setScreen(tab.id);}}>
+                  <div className="bnav-icon">{tab.icon}</div>
+                  <div className="bnav-lbl">{tab.lbl}</div>
+                </button>
+              ))}
+              <button className="bnav-item" onClick={openAccountSheet}>
+                <div className="bnav-icon">👤</div>
+                <div className="bnav-lbl">Account</div>
+              </button>
+            </div>
+          </>
+        )}
+
         {/* WELCOME */}
         {screen==="welcome" && (
           <div className={`welcome${wExit?" out":""}`}>
@@ -1420,7 +1710,7 @@ export default function App() {
                     fontSize: "0.85rem",
                     letterSpacing: "0.35em",
                     textTransform: "uppercase",
-                    color: "rgba(255,255,255,0.55)"
+                    color: "var(--muted)"
                   }}
                 >
                   Virtual Fitting Experience
@@ -1456,18 +1746,19 @@ export default function App() {
               <>
                 {/* Steps */}
                 <div className="steps">
-                  {[{n:1,l:"Photo"},{n:2,l:"Garment"},{n:3,l:"Generate"}].map((s,i)=>(
+                  {[{n:1,l:"Garment"},{n:2,l:"Photos"},{n:3,l:"Result"}].map((s,i)=>(
                     <div key={s.n} className="si">
-                      {i>0 && <div className={`sl${step>s.n?" done":""}`}/>}
+                      {i>0 && <div className={`sl${wizardStep>s.n?" done":""}`}/>}
                       <div className="sw">
-                        <div className={`sd${step===s.n?" active":step>s.n?" done":""}`}>{step>s.n?"✓":s.n}</div>
+                        <div className={`sd${wizardStep===s.n?" active":wizardStep>s.n?" done":""}`}>{wizardStep>s.n?"✓":s.n}</div>
                         <div className="slabel">{s.l}</div>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                {/* Tip box */}
+                {wizardStep === 1 && (
+                <>
                 <div className="tipbox">
                   <div className="tipbox-icon">💡</div>
                   <div>
@@ -1502,6 +1793,17 @@ Garment:
                   </div>
                 </div>
 
+                <div className="genwrap">
+                  <button className="genbtn" onClick={()=>{click();AudioEngine.play("select");setWizardStep(2);}}>
+                    <span>Next: Upload Photos</span>
+                    <span>→</span>
+                  </button>
+                </div>
+                </>
+                )}
+
+                {wizardStep === 2 && (
+                <>
                 {/* Upload zones */}
                 <div className="uploadsec">
                   <div>
@@ -1587,14 +1889,21 @@ Garment:
                   </div>
                 )}
 
-                {/* Generate */}
-                <div className="genwrap">
-                  <button className="genbtn" onClick={generate} disabled={!personImg||!clothImg||isOffline}>
+                {/* Back + Generate */}
+                <div className="genwrap" style={{display:"flex",gap:".7rem"}}>
+                  <button
+                    className="genbtn"
+                    style={{flex:"0 0 auto",padding:"0 1.3rem",background:"transparent",border:"1px solid var(--border)",color:"var(--muted)"}}
+                    onClick={()=>{click();setWizardStep(1);}}
+                  >← Back</button>
+                  <button className="genbtn" style={{flex:1}} onClick={generate} disabled={!personImg||!clothImg||isOffline}>
                     <div className="shine"/>
                     <span>✦</span>
                     <span>Generate Try-On</span>
                   </button>
                 </div>
+                </>
+                )}
 
                 {/* Saved looks */}
                 {savedLooks.length > 0 && (
@@ -1740,13 +2049,25 @@ Garment:
           <div className="sheetbg" onClick={()=>setAccountOpen(false)}>
             <div className="sheet" onClick={e=>e.stopPropagation()}>
               <div className="shandle"/>
-              <div className="shtitle">Your Brand Account</div>
-              {typeof auth?.brand?.usageCount === "number" && (
-                <div className="adm-badge" style={{display:"inline-block",marginTop:".6rem"}}>
-                  ✦ {auth.brand.usageCount} try-on{auth.brand.usageCount===1?"":"s"} generated
+
+              <div className="prof-hdr">
+                <div className="prof-avatar">
+                  {editLogo ? <img src={editLogo} alt="" /> : (auth?.brand?.name?.[0] || "?").toUpperCase()}
                 </div>
-              )}
-              <form className="auth-form" style={{marginTop:"1rem"}} onSubmit={saveProfile}>
+                <div className="prof-name">{auth?.brand?.name || "Your Brand"}</div>
+                <div className="prof-phone">{auth?.brand?.phone}</div>
+                {typeof auth?.brand?.usageCount === "number" && (
+                  <div className="prof-stats">
+                    <div className="prof-stat">
+                      <div className="prof-stat-num">{auth.brand.usageCount}</div>
+                      <div className="prof-stat-lbl">Try-Ons</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="shtitle" style={{fontSize:"1rem",marginBottom:".9rem"}}>Edit Profile</div>
+              <form className="auth-form" onSubmit={saveProfile}>
                 <div className="auth-field">
                   <label className="auth-label" htmlFor="edit-name">Brand Name</label>
                   <input
@@ -1787,5 +2108,13 @@ Garment:
         <div className={`toast${toastOn?" on":""}`} role="status">{toast}</div>
       </div>
     </>
+  );
+}
+
+export default function AppWithErrorBoundary() {
+  return (
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   );
 }

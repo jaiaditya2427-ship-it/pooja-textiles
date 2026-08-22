@@ -9,6 +9,7 @@ import cors from "cors";
 import sharp from "sharp";
 import authRoutes, { requireAuth } from "./auth.js";
 import adminRoutes from "./admin.js";
+import enquiriesRoutes from "./enquiries.js";
 import { initDb } from "./db.js";
 import { incrementUsage } from "./store.js";
 
@@ -42,6 +43,7 @@ app.get("/", (req, res) => {
 // ── AUTH (brand signup / login) ──
 app.use("/auth", authRoutes);
 app.use("/admin", adminRoutes);
+app.use("/enquiries", enquiriesRoutes);
 
 // ── IMAGE PREPROCESS (resize/rotate/compress before sending to PixelAPI) ──
 const preprocessImage = async (dataUrl, type) => {

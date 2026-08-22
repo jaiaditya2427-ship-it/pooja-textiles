@@ -112,3 +112,46 @@ export const incrementUsage = async (id) => {
   brands[idx].usageCount = (brands[idx].usageCount || 0) + 1;
   writeAll(brands);
 };
+
+// ── Enquiries (customer interest log per brand) ──
+const ENQ_FILE = path.join(__dirname, "enquiries.json");
+const readEnq = () => {
+  try { return JSON.parse(fs.readFileSync(ENQ_FILE, "utf-8")); } catch { return []; }
+};
+const writeEnq = (rows) => fs.writeFileSync(ENQ_FILE, JSON.stringify(rows, null, 2));
+
+export const createEnquiry = async (enq) => {
+  if (usingDb()) {
+    await pool.query(
+      `INSERT INTO enquiries (id, brand_id, customer_name, customer_phone, note, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6)`,
+      [enq.id, enq.brandId, enq.customerName, enq.customerPhone, enq.note, enq.createdAt]
+    );
+    return enq;
+  }
+  const rows = readEnq();
+  rows.push(enq);
+  writeEnq(rows);
+  return enq;
+};
+
+export const listEnquiries = async (brandId) => {
+  if (usingDb()) {
+    const { rows } = await pool.query(
+      "SELECT * FROM enquiries WHERE brand_id = $1 ORDER BY created_at DESC",
+      [brandId]
+    );
+    return rows;
+  }
+  return readEnq().filter((e) => e.brandId === brandId).sort((a, b) => b.createdAt - a.createdAt);
+};
+
+export const deleteEnquiry = async (id, brandId) => {
+  if (usingDb()) {
+    await pool.query("DELETE FROM enquiries WHERE id = $1 AND brand_id = $2", [id, brandId]);
+    return true;
+  }
+  const rows = readEnq().filter((e) => !(e.id === id && e.brandId === brandId));
+  writeEnq(rows);
+  return true;
+};
