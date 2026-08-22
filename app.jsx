@@ -112,13 +112,12 @@ const S = `
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;700&family=DM+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0D0D0D; --surface:#161616; --card:#1E1E1E; --border:#2A2A2A;
+  --bg:#000000; --surface:#161616; --card:#1E1E1E; --border:#2A2A2A;
   --gold:#D4A843; --gold2:#F0C96A; --cream:#FAF6EF; --muted:#888;
   --green:#22C55E; --red:#EF4444;
   --glass:rgba(255,255,255,0.04); --r:12px;
 }
-html,body{background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-.app{min-height:100vh;max-width:430px;margin:0 auto;position:relative}
+html,body,#root{background:#000 !important;color:var(--cream);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;-webkit-tap-highlight-color:transparent;touch-action:manipulation}.app{min-height:100vh;max-width:430px;margin:0 auto;position:relative}
 button:focus-visible,.uzone:focus-visible,.gc:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
 /* OFFLINE BANNER */
