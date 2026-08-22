@@ -128,10 +128,22 @@ const S = `
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;700&family=DM+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0D0D0D; --surface:#161616; --card:#1E1E1E; --border:#2A2A2A;
-  --gold:#D4A843; --gold2:#F0C96A; --cream:#FAF6EF; --muted:#888;
-  --green:#22C55E; --red:#EF4444;
-  --glass:rgba(255,255,255,0.04); --r:12px;
+  --bg:#F8F5EF;
+  --surface:#FFFFFF;
+  --card:#FFFFFF;
+  --border:#E5DED2;
+
+  --gold:#B88A3B;
+  --gold2:#D6AE65;
+
+  --cream:#211E1A;
+  --muted:#81786B;
+
+  --green:#22C55E;
+  --red:#DC4C4C;
+
+  --glass:rgba(33,30,26,.035);
+  --r:12px;
 }
 html,body{background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .app{min-height:100vh;max-width:430px;margin:0 auto;position:relative}
@@ -177,10 +189,13 @@ button:focus-visible,.uzone:focus-visible,.gc:focus-visible{outline:2px solid va
 .auth-label{font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
 .auth-input{background:var(--surface);border:1px solid var(--border);color:var(--cream);padding:.85rem 1rem;font-family:'DM Sans',sans-serif;font-size:.9rem;border-radius:var(--r);transition:border-color .25s}
 .auth-input:focus{outline:none;border-color:var(--gold)}
-.auth-input::placeholder{color:#555}
+.auth-input::placeholder{color:#A49C91}
 .auth-err{font-size:.72rem;color:var(--red);background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);padding:.6rem .8rem;border-radius:var(--r);animation:fadeUp .3s ease}
-.auth-submit{margin-top:.4rem;display:flex;align-items:center;justify-content:center;gap:.7rem;padding:1rem;background:var(--gold);color:#000;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;border:none;border-radius:var(--r);cursor:pointer;transition:all .3s}
-.auth-submit:hover{box-shadow:0 0 40px rgba(212,168,67,.5)}
+.auth-submit{margin-top:.4rem;display:flex;align-items:center;justify-content:center;gap:.7rem;padding:1rem;background:var(--gold);color:#FFFFFF;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;border:none;border-radius:var(--r);cursor:pointer;transition:all .3s}
+.auth-submit:hover{
+  box-shadow:0 10px 35px rgba(184,138,59,.28);
+  transform:translateY(-1px)
+}
 .auth-submit:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
 .auth-switch{margin-top:1.4rem;font-size:.72rem;color:var(--muted);text-align:center;animation:fadeUp .8s ease .45s both}
 .auth-switch button{background:none;border:none;color:var(--gold);font-size:.72rem;font-weight:600;cursor:pointer;padding:0 .2rem}
