@@ -112,8 +112,19 @@ const S = `
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;700&family=DM+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#000000; --surface:#161616; --card:#1E1E1E; --border:#2A2A2A;
-  --gold:#D4A843; --gold2:#F0C96A; --cream:#FAF6EF; --muted:#888;
+  --bg:#000000;
+  --surface:#0A0A0A;
+  --card:#111111;
+  --border:#222222;
+  --gold:#D4A843;
+  --gold2:#F0C96A;
+  --cream:#FAF6EF;
+  --muted:#888;
+  --green:#22C55E;
+  --red:#EF4444;
+  --glass:rgba(255,255,255,0.04);
+  --r:12px;
+}
   --green:#22C55E; --red:#EF4444;
   --glass:rgba(255,255,255,0.04); --r:12px;
 }
